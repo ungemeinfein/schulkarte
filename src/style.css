@@ -259,8 +259,6 @@ td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); 
 .popup-title { font-size: var(--fs-l); margin: 0 28px 6px 0; }
 .carousel + .popup-body .popup-title { margin-right: 0; }
 .popup-src { display: inline-block; margin-top: 8px; font-size: var(--fs-s); }
-.route-hint { font-size: var(--fs-xs); color: var(--muted); padding-bottom: 4px !important; }
-.rh-A { color: var(--A); font-weight: 600; } .rh-B { color: var(--B); font-weight: 600; }
 .popup-sites { margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid #f59e0b; background: var(--warn-bg); color: var(--warn-fg); font-size: var(--fs-s); border-radius: 0 4px 4px 0; }
 .school-popup a.leaflet-popup-close-button {
   top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; z-index: 2;

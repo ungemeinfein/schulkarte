@@ -138,11 +138,40 @@ function pickWalkIfBetter(ride, point, school) {
 
 const minutesBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 60000);
 
+// Linien für die Speicherung verkleinern: 5 Nachkommastellen, Punkte mit < ~20 m Abstand weglassen.
+export function compress(coords) {
+  const out = [];
+  for (const [lat, lon] of coords) {
+    const p = [Math.round(lat * 1e5) / 1e5, Math.round(lon * 1e5) / 1e5];
+    const last = out.at(-1);
+    if (!last || Math.abs(last[0] - p[0]) > 0.00018 || Math.abs(last[1] - p[1]) > 0.0003) out.push(p);
+  }
+  const end = coords.at(-1);
+  if (end && out.length) out[out.length - 1] = [Math.round(end[0] * 1e5) / 1e5, Math.round(end[1] * 1e5) / 1e5];
+  return out;
+}
+
+// Route-Abschnitte einer Verbindung: Fußweg zur Start-Haltestelle (Gerade) + alle Abschnitte mit Gleis-/Straßenverlauf.
+function journeyLegs(journey, stop, point) {
+  const home = round(point);
+  const loc = (x) => {
+    const l = x?.location ?? x;
+    return l && Number.isFinite(l.latitude) ? [l.latitude, l.longitude] : null;
+  };
+  const legs = journey.legs.map((leg) => {
+    const pts = leg.polyline?.features?.map((f) => [f.geometry.coordinates[1], f.geometry.coordinates[0]]) ?? [];
+    const coords = compress(pts.length > 1 ? pts : [loc(leg.origin), loc(leg.destination)].filter(Boolean));
+    return leg.walking ? { kind: 'walk', coords } : { kind: 'ride', line: leg.line?.name ?? '', coords };
+  }).filter((l) => l.coords.length > 1);
+  return [{ kind: 'walk', coords: [[home[1], home[0]], [stop.location[1], stop.location[0]]] }, ...legs];
+}
+
 // { [Schulname]: { min, lines, transfers, stop, walkMin } | null }; Ankunft bis 08:00 am nächsten Dienstag.
 export async function transitTimes(point, schools, onProgress) {
   const stop = await nearestStop(point);
   const { date, offset } = schoolDay();
   const out = {};
+  const routes = {};
   let done = 0;
   for (const s of schools) {
     try {
@@ -153,6 +182,7 @@ export async function transitTimes(point, schools, onProgress) {
         'to.address': s.p.Schule,
         arrival: `${date}T08:00${offset}`,
         results: 3,
+        polylines: true,
         stopovers: false,
         remarks: false,
       });
@@ -162,13 +192,17 @@ export async function transitTimes(point, schools, onProgress) {
       const lines = best ? best.j.legs.filter((l) => !l.walking && l.line).map((l) => l.line.name) : [];
       const ride = best ? { min: best.dur + stop.walkMin, lines, transfers: Math.max(0, lines.length - 1), stop: stop.name, walkMin: stop.walkMin } : null;
       out[s.p.Schule] = pickWalkIfBetter(ride, point, s);
+      routes[s.p.Schule] = out[s.p.Schule]?.lines.length && best
+        ? journeyLegs(best.j, stop, point)
+        : [{ kind: 'walk', coords: [[round(point)[1], round(point)[0]], [s.lonLat[1], s.lonLat[0]]] }];
     } catch (err) {
       console.warn('ÖPNV-Abfrage fehlgeschlagen', s.p.Schule, err);
       out[s.p.Schule] = pickWalkIfBetter(null, point, s);
+      if (out[s.p.Schule]) routes[s.p.Schule] = [{ kind: 'walk', coords: [[round(point)[1], round(point)[0]], [s.lonLat[1], s.lonLat[0]]] }];
     }
     onProgress?.(++done, schools.length);
   }
-  return { date, stop: stop.name, walkMin: stop.walkMin, times: out };
+  return { date, stop: stop.name, walkMin: stop.walkMin, times: out, routes };
 }
 
 const reachCache = new Map();
@@ -273,7 +307,7 @@ export function bikeRoute(point, school) {
       costing_options: BIKE_COSTING,
       directions_options: { units: 'km' },
     });
-    return [{ kind: 'bike', coords: decodePolyline6(data.trip.legs[0].shape) }];
+    return [{ kind: 'bike', coords: compress(decodePolyline6(data.trip.legs[0].shape)) }];
   });
 }
 
@@ -294,19 +328,21 @@ export function transitRoute(point, school) {
       remarks: false,
     });
     const home = round(point);
-    const walkToStop = { kind: 'walk', coords: [[home[1], home[0]], [stop.location[1], stop.location[0]]] };
     const best = journeys
       .map((j) => ({ j, dur: minutesBetween(j.legs[0].departure ?? j.legs[0].plannedDeparture, j.legs.at(-1).arrival ?? j.legs.at(-1).plannedArrival) }))
       .sort((a, b) => a.dur - b.dur)[0];
     if (!best) return [{ kind: 'walk', coords: [[home[1], home[0]], [school.lonLat[1], school.lonLat[0]]] }];
-    const loc = (x) => (x?.location ?? x) && [(x.location ?? x).latitude, (x.location ?? x).longitude];
-    const legs = best.j.legs.map((leg) => {
-      const pts = leg.polyline?.features?.map((f) => [f.geometry.coordinates[1], f.geometry.coordinates[0]]) ?? [];
-      const coords = pts.length > 1 ? pts : [loc(leg.origin), loc(leg.destination)].filter((c) => c && c.every(Number.isFinite));
-      return leg.walking
-        ? { kind: 'walk', coords }
-        : { kind: 'ride', line: leg.line?.name ?? '', product: leg.line?.product ?? '', coords };
-    }).filter((l) => l.coords.length > 1);
-    return [walkToStop, ...legs];
+    return journeyLegs(best.j, stop, point);
   });
+}
+
+// Alle Fahrrad-Routen eines Ortes (für die Speicherung beim Berechnen).
+export async function bikeRoutes(point, schools, onProgress) {
+  const out = {};
+  let done = 0;
+  for (const s of schools) {
+    try { out[s.p.Schule] = await bikeRoute(point, s); } catch { /* fehlt dann, wird beim Darüberfahren nachgeladen */ }
+    onProgress?.(++done, schools.length);
+  }
+  return out;
 }

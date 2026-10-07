@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { booleanPointInPolygon, distance, featureCollection, intersect } from '@turf/turf';
 import { reachArea, SPEED_KMH } from './isochrones.js';
-import { bikeRoute, bikeTimes, pointKey, schoolDay, transitRoute, transitTimes } from './routing.js';
+import { bikeRoute, bikeRoutes, bikeTimes, pointKey, schoolDay, transitRoute, transitTimes } from './routing.js';
 import { initTermine, nextEventFor, setHits } from './termine.js';
 import { initSplitters } from './splitters.js';
 import { addSearchControl } from './search.js';
@@ -13,6 +13,7 @@ const STORAGE_KEY = 'schulkarte.points';
 const TABLE_KEY = 'schulkarte.table.v2';
 const SOURCE_KEY = 'schulkarte.source';
 const TIMES_KEY = 'schulkarte.times';
+const ROUTES_KEY = 'schulkarte.routes';
 const COLORS = { A: '#2563eb', B: '#be185d', overlap: '#16a34a' };
 const MODE_LABEL = { bike: 'Rad', transit: 'ÖPNV' };
 const SOURCE_LABEL = {
@@ -35,6 +36,7 @@ const state = {
   areas: { A: null, B: null },
   overlap: null,
   source: loadJson(SOURCE_KEY).source === 'real' ? 'real' : 'approx',
+  routes: loadJson(ROUTES_KEY), // { "transit|lon,lat": { [Schule]: legs } } – Linien für die Hover-Anzeige
   times: loadJson(TIMES_KEY), // { "bike|lon,lat": {times}, "transit|lon,lat": {date, stop, times} }
   table: { sort: 'max', dir: 1, onlyHits: true, ...loadJson(TABLE_KEY) },
 };
@@ -155,10 +157,10 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
     .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 40] })
     .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] })
-    .on('popupopen', () => { selectSchool(p.Schule); showRoutes(school); })
-    .on('popupclose', () => { routeLayer.clearLayers(); if (selected === p.Schule) selectSchool(null); })
-    .on('mouseover', () => highlightList(p.Schule, true))
-    .on('mouseout', () => highlightList(p.Schule, false));
+    .on('popupopen', () => { selectSchool(p.Schule); hoverRoutes(null); })
+    .on('popupclose', () => { if (selected === p.Schule) selectSchool(null); hoverRoutes(null); })
+    .on('mouseover', () => { highlightList(p.Schule, true); hoverRoutes(p.Schule); })
+    .on('mouseout', () => { highlightList(p.Schule, false); hoverRoutes(null); });
   return school;
 });
 const byName = new Map(schools.map((s) => [s.p.Schule, s]));
@@ -182,13 +184,13 @@ function timeEntry(label, mode) {
   const k = `${label}|${mode}`;
   if (!entryCache.has(k)) {
     const pt = state.points[label];
-    entryCache.set(k, pt ? state.times[`${mode}|${pointKey(pt)}`] ?? nearbyEntry(pt, mode) : undefined);
+    entryCache.set(k, pt ? state.times[`${mode}|${pointKey(pt)}`] ?? nearbyEntry(state.times, pt, mode) : undefined);
   }
   return entryCache.get(k);
 }
 // Toleranz für Rundungsgrenzen (z. B. Punkt aus einem Link mit 4 statt voller Nachkommastellen).
-function nearbyEntry(pt, mode) {
-  for (const [key, entry] of Object.entries(state.times)) {
+function nearbyEntry(store, pt, mode) {
+  for (const [key, entry] of Object.entries(store)) {
     const [m, coords] = key.split('|');
     if (m !== mode) continue;
     const [lon, lat] = coords.split(',').map(Number);
@@ -268,7 +270,6 @@ function popupHtml(s) {
     : '';
   return `${carouselHtml(p.Schule)}<div class="popup-body"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3>${sites}
     <table class="popup">
-      ${hasRealTimes() ? `<tr><td colspan="2" class="route-hint">Route${setLabels().length > 1 ? 'n' : ''} auf der Karte: <span class="rh-A">Ort A</span>${state.points.B ? ' · <span class="rh-B">Ort B</span>' : ''} · gestrichelt = zu Fuß</td></tr>` : ''}
       ${row('Ab Ort A', timeText(s, 'A'))}
       ${row('Ab Ort B', timeText(s, 'B'))}
       ${row('Schulform', p.Schulform)}
@@ -307,16 +308,54 @@ map.on('popupclose', () => {
 });
 
 // ---------- Routen A/B → Schule (nur mit berechneten Fahrzeiten, auf Abruf) ----------
+// Routen erscheinen beim Darüberfahren (Marker, Tabellenzeile, Termin); ohne Hover die der ausgewählten Schule.
+// Kurze Hover-Verzögerung, damit Überfliegen der Liste keine Anfragen auslöst.
+const HOVER_DELAY_MS = 350;
+let hoverTimer;
+function hoverRoutes(name) {
+  clearTimeout(hoverTimer);
+  const target = name ?? selected;
+  if (!target) { routeRequest++; routeLayer.clearLayers(); return; }
+  // Gespeicherte Routen sofort zeigen; nur wenn noch geladen werden muss, kurz warten.
+  const ready = setLabels().every((l) => storedRoutes(l, state.mode, target));
+  if (ready || !name) showRoutes(byName.get(target));
+  else hoverTimer = setTimeout(() => showRoutes(byName.get(target)), HOVER_DELAY_MS);
+}
+
+function storedRoutes(label, mode, name) {
+  const pt = state.points[label];
+  if (!pt) return undefined;
+  const entry = state.routes[`${mode}|${pointKey(pt)}`] ?? nearbyEntry(state.routes, pt, mode);
+  if (entry?.[name]) return entry[name];
+  // Schulen in Fußnähe: gerade Fußweg-Linie, ohne Abfrage.
+  const school = byName.get(name);
+  const info = school && realInfo(school, label, mode);
+  if (mode === 'transit' && info && !info.lines?.length) return [{ kind: 'walk', coords: [[pt[1], pt[0]], [school.lonLat[1], school.lonLat[0]]] }];
+  return undefined;
+}
+let saveRoutesTimer;
+function rememberRoutes(label, mode, name, legs) {
+  const key = `${mode}|${pointKey(state.points[label])}`;
+  (state.routes[key] ??= {})[name] = legs;
+  clearTimeout(saveRoutesTimer);
+  saveRoutesTimer = setTimeout(() => saveJson(ROUTES_KEY, state.routes), 500);
+}
+
 let routeRequest = 0;
 async function showRoutes(school) {
-  routeLayer.clearLayers();
-  if (!hasRealTimes()) return;
   const req = ++routeRequest;
+  routeLayer.clearLayers();
+  if (!school || !hasRealTimes()) return;
   const mode = state.mode;
-  const results = await Promise.allSettled(setLabels().map(async (l) => ({
-    l, legs: await (mode === 'bike' ? bikeRoute : transitRoute)(state.points[l], school),
-  })));
-  if (req !== routeRequest || !school.marker.isPopupOpen()) return;
+  const results = await Promise.allSettled(setLabels().map(async (l) => {
+    let legs = storedRoutes(l, mode, school.p.Schule);
+    if (!legs) {
+      legs = await (mode === 'bike' ? bikeRoute : transitRoute)(state.points[l], school);
+      rememberRoutes(l, mode, school.p.Schule, legs);
+    }
+    return { l, legs };
+  }));
+  if (req !== routeRequest) return;
   for (const r of results) {
     if (r.status !== 'fulfilled') continue;
     const { l, legs } = r.value;
@@ -329,17 +368,12 @@ async function showRoutes(school) {
       line.bindTooltip(walk ? `Ort ${l}: zu Fuß` : leg.kind === 'bike' ? `Ort ${l}: Fahrrad` : `Ort ${l}: ${leg.line}`, { sticky: true });
     }
   }
-  school.marker.bringToFront();
-  // Ganze Route zeigen; oben Platz fürs Popup lassen (nur wenn die Karte hoch genug ist).
-  const size = map.getSize();
-  if (size.y >= 520 && routeLayer.getLayers().length) {
-    const bounds = L.featureGroup(routeLayer.getLayers()).getBounds().extend(school.marker.getLatLng());
-    map.fitBounds(bounds, { paddingTopLeft: [40, Math.min(420, size.y * 0.55)], paddingBottomRight: [40, 30], maxZoom: 15, animate: true });
-  }
+  if (schoolLayer.hasLayer(school.marker)) school.marker.bringToFront();
 }
 
 // ---------- Hover-Verknüpfung Liste ↔ Karte ----------
 function highlightMarker(name, on) {
+  hoverRoutes(on ? name : null);
   const s = byName.get(name);
   if (!s?.base || !schoolLayer.hasLayer(s.marker)) return;
   if (on) {
@@ -768,12 +802,26 @@ $('computeTimes').onclick = async () => {
       };
       status(`Radwege ab Ort ${l} …`);
       merge('bike', { times: await bikeTimes(state.points[l], todo('bike')) });
-      merge('transit', await transitTimes(state.points[l], todo('transit'), (i, n) => {
-        bar.value = (li + i / n) / labels.length;
-        const pct = Math.floor((i / n) * 10);
-        if (pct !== lastPct) { lastPct = pct; status(`ÖPNV ab Ort ${l}: ${i} von ${n} Schulen …`); }
-      }));
+      // ÖPNV-Zeiten (inkl. Routen) und Fahrrad-Routen laufen parallel – verschiedene Dienste.
+      const routeKey = (mode) => `${mode}|${key}`;
+      const needBike = schools.filter((s) => !state.routes[routeKey('bike')]?.[s.p.Schule]);
+      let tDone = 0, bDone = 0;
+      const tTotal = todo('transit').length, bTotal = needBike.length || 1;
+      const progress = () => {
+        bar.value = (li + (tDone / tTotal + bDone / bTotal) / 2) / labels.length;
+        const pct = Math.floor(((tDone / tTotal + bDone / bTotal) / 2) * 10);
+        if (pct !== lastPct) { lastPct = pct; status(`Ort ${l}: ÖPNV ${tDone} von ${tTotal}, Radrouten ${bDone} von ${needBike.length} …`); }
+      };
+      const [transit, bikeR] = await Promise.all([
+        transitTimes(state.points[l], todo('transit'), (i) => { tDone = i; progress(); }),
+        needBike.length ? bikeRoutes(state.points[l], needBike, (i) => { bDone = i; progress(); }) : {},
+      ]);
+      const { routes: transitR, ...transitRest } = transit;
+      merge('transit', transitRest);
+      state.routes[routeKey('transit')] = { ...state.routes[routeKey('transit')], ...transitR };
+      state.routes[routeKey('bike')] = { ...state.routes[routeKey('bike')], ...bikeR };
       saveJson(TIMES_KEY, state.times);
+      saveJson(ROUTES_KEY, state.routes);
       lastPct = -1;
       renderSchools();
     }
@@ -792,7 +840,9 @@ $('computeTimes').onclick = async () => {
 
 function renderTimesInfo() {
   const labels = setLabels();
-  const complete = (l, mode) => timeEntry(l, mode) && schools.every((s) => s.p.Schule in timeEntry(l, mode).times);
+  const complete = (l, mode) => timeEntry(l, mode) && schools.every((s) => s.p.Schule in timeEntry(l, mode).times)
+    && schools.every((s) => realInfo(s, l, mode) == null || storedRoutes(l, mode, s.p.Schule)
+      || (mode === 'transit' && !realInfo(s, l, mode).lines?.length)); // Fußweg-Schulen brauchen keine gespeicherte Route
   const missing = labels.filter((l) => !complete(l, 'bike') || !complete(l, 'transit'));
   const partial = missing.some((l) => timeEntry(l, 'bike') || timeEntry(l, 'transit'));
   const btn = $('computeTimes');
