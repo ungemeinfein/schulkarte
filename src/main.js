@@ -496,7 +496,7 @@ const COLUMNS = [
       const side = labels.length > 1 ? labels[mins.indexOf(v)] : '';
       const real = labels.every((l) => realMin(s, l) != null);
       const tip = labels.map((l) => detailLine(s, l)).join('\n');
-      return `<span class="time${real ? '' : ' approx'}" title="${escapeHtml(tip)}">${real ? '' : '≈'}${v}</span>${side ? `<span class="side side-${side}" title="längerer Weg ab Ort ${side}">${side}</span>` : ''}`;
+      return `<span class="time${real ? '' : ' approx'}" title="${escapeHtml(tip)}">${real ? '' : '≈'}${v}<span class="unit"> min.</span></span>${side ? `<span class="side side-${side}" title="längerer Weg ab Ort ${side}">${side}</span>` : ''}`;
     } },
   { key: 'next', label: 'Nächster Termin', value: (s) => nextEventFor(s.p.Schule)?.start ?? null, cls: 'clip',
     html: (s) => {
