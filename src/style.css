@@ -91,7 +91,10 @@ td .tr { font-size: 10px; color: var(--muted); margin-left: 2px; }
 .dot.dim { background: #d1d5db; border-color: #9ca3af; }
 
 /* ---------- Tabelle ---------- */
-.table-wrap { overflow: auto; flex: 1; }
+.table-wrap { overflow: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.table-wrap::-webkit-scrollbar { height: 8px; width: 8px; }
+.table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
 #schoolTable { border-collapse: collapse; width: 100%; font-size: 13px; }
 #schoolTable thead th {
   position: sticky; top: 0; z-index: 1; background: #f3f4f6; text-align: left; font-weight: 600;
