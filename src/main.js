@@ -178,9 +178,9 @@ function costCategory(p) {
 
 // Fotos werden erst fürs Popup gebraucht – nicht auf sie warten.
 let fotos = {};
-fetch(`${import.meta.env.BASE_URL}fotos.json`).then((r) => (r.ok ? r.json() : {})).then((f) => (fotos = f)).catch(() => {});
+fetch(`${import.meta.env.BASE_URL}fotos.json?v=${__BUILD_ID__}`).then((r) => (r.ok ? r.json() : {})).then((f) => (fotos = f)).catch(() => {});
 
-const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`)).json()).features.map((f) => {
+const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson?v=${__BUILD_ID__}`)).json()).features.map((f) => {
   const p = f.properties;
   const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), gt: gtCategory(p), lonLat: f.geometry.coordinates, hit: false };
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
