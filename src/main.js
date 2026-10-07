@@ -657,7 +657,7 @@ const ALL_COLUMNS = [
       const tip = [`${n.toLocaleString('de-DE')} Schüler*innen`, s.p['Schüler Jg. 7'] ? `Jahrgang 7: ${s.p['Schüler Jg. 7']}` : '', s.p['Schülerzahl Stand'] ? `Stand ${s.p['Schülerzahl Stand']}` : ''].filter(Boolean).join(' · ');
       return `<span title="${escapeHtml(tip)}">${n.toLocaleString('de-DE')}</span>`;
     } },
-  { key: 'max', label: () => `Fahrzeit (${MODE_LABEL[state.mode]})`, num: true,
+  { key: 'max', label: 'Längster Weg', num: true,
     title: () => `Längerer der beiden Wege ab Ort A und Ort B mit ${state.mode === 'bike' ? 'dem Rad' : 'ÖPNV'}, in Minuten. Details beim Darüberfahren.`,
     value: (s) => maxMin(s),
     html: (s) => {
