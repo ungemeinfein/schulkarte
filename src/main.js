@@ -25,8 +25,8 @@ const $ = (id) => document.getElementById(id);
 const state = {
   points: loadPoints(), // { A: [lon, lat] | null, B: … }
   armed: null,
-  mode: 'bike',
-  minutes: 25,
+  mode: 'transit',
+  minutes: 40,
   forms: new Set(['Gymnasium', 'ISS', 'Gemeinschaftsschule', 'Freie Schule']),
   abi: new Set(['ja', 'im Aufbau', 'nein']),
   cost: new Set(['staatlich', 'privat']),
@@ -326,8 +326,8 @@ function renderSchools() {
 
   const both = state.areas.A && state.areas.B;
   $('resultTitle').textContent = !anyArea()
-    ? `${visible.length} Schulen`
-    : `${hits.length} von ${visible.length} ${both ? 'in der Überlappung' : 'im Bereich ' + (state.areas.A ? 'A' : 'B')}`;
+    ? String(visible.length)
+    : `${hits.length} von ${visible.length} ${both ? 'erreichbar von A und B' : 'erreichbar von ' + (state.areas.A ? 'A' : 'B')}`;
   $('export').disabled = hits.length === 0;
   $('export').onclick = () => exportCsv(hits);
 
@@ -340,9 +340,6 @@ function renderSchools() {
   renderTable(visible);
   renderTimesInfo();
   updatePlacing();
-  $('hitRule').textContent = hasRealTimes()
-    ? `Treffer = echte ${state.mode === 'bike' ? 'Rad' : 'ÖPNV'}-Fahrzeit ≤ ${state.minutes} min von ${setLabels().join(' und ')}.`
-    : 'Treffer = Schule liegt in der Fläche.';
   setHits(anyArea() ? new Set(hits.map((s) => s.p.Schule)) : null);
 }
 
@@ -476,7 +473,6 @@ function renderTable(visible) {
     tr.onclick = () => focusSchool(s.p.Schule);
     return tr;
   }));
-  $('tableCount').textContent = rows.length;
 }
 
 function exportCsv(hits) {
@@ -631,4 +627,5 @@ showTab(loadJson(TAB_KEY).tab ?? 'sidebar');
 window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => map.invalidateSize(), 50));
 initTermine({ focusSchool, hasSchool: (n) => byName.has(n) });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
+renderSchools(); // sofort zeigen, Flächen kommen danach
 update();

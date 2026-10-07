@@ -19,7 +19,7 @@
     "Bezirk": "Treptow-Köpenick",
     "Adresse": "Köpenzeile 125, 12557 Berlin",
     "Abschlüsse vor Ort": "bis MSA",
-    "Eigene Oberstufe": "nein; nach MSA Übergang in die Montessori Oberstufe (Blücherstr. 22, Kreuzberg) „möglich“, nicht garantiert",
+    "Eigene Oberstufe": "nein; nach MSA Übergang in die Montessori Oberstufe (Blücherstr. 22, Kreuzberg) „möglich“, nicht garantiert – im Schulverzeichnis ist „Gymnasiale Oberstufe“ angehakt (vermutlich die Kreuzberger Oberstufe); bei der Schule klären",
     "Abitur vor Ort": "nein",
     "Ganztag": "",
     "Profil / Schwerpunkte": "Montessori-Pädagogik",
@@ -316,8 +316,8 @@
    "geometry": {
     "type": "Point",
     "coordinates": [
-     13.5464776,
-     52.4011392
+     13.5639834,
+     52.4010297
     ]
    },
    "properties": {
@@ -327,7 +327,7 @@
     "Träger": "staatlich",
     "Ortsteil": "",
     "Bezirk": "Treptow-Köpenick",
-    "Adresse": "Kalker Straße 7, 12524 Berlin (Filialen Dahmestraße 36/45, 12526)",
+    "Adresse": "Dahmestraße 45, 12526 Berlin",
     "Abschlüsse vor Ort": "",
     "Eigene Oberstufe": "im Aufbau (Jg. 7–13 lt. Senatsverzeichnis 2027/28; weiteres Gebäude geplant)",
     "Abitur vor Ort": "im Aufbau",
@@ -338,7 +338,7 @@
     "Erstwünsche 2026/27": "182",
     "Nachfrage Hinweis": "",
     "Kosten": "kostenfrei",
-    "Notizen": "",
+    "Notizen": "Hauptstandort lt. Schulverzeichnis; weiterer Standort Kalker Straße (Altglienicke)",
     "Quelle": "https://www.berlin.de/ba-treptow-koepenick/politik-und-verwaltung/aemter/schul-und-sportamt/schule/weiterfuehrende-schulen-in-treptow-koepenick-1626581.php"
    }
   },
@@ -451,7 +451,7 @@
     "Träger": "staatlich",
     "Ortsteil": "",
     "Bezirk": "Treptow-Köpenick",
-    "Adresse": "Am Plänterwald 17/23, Berlin (PLZ auf Bezirksseite widersprüchlich: 12435 / 12543)",
+    "Adresse": "Am Plänterwald 17/23, 12435 Berlin",
     "Abschlüsse vor Ort": "",
     "Eigene Oberstufe": "ja, im Verbund mit der Röntgen-Schule (08K09)",
     "Abitur vor Ort": "ja",
@@ -555,7 +555,7 @@
     "Erstwünsche 2026/27": "258",
     "Nachfrage Hinweis": "",
     "Kosten": "kostenfrei",
-    "Notizen": "neu (seit 2026/27); PLZ an anderer Stelle als 12489 angegeben",
+    "Notizen": "amtlich: „10. Schule (Gemeinschaftsschule)“; neu (seit 2026/27); PLZ an anderer Stelle als 12489 angegeben",
     "Quelle": "https://www.berlin.de/ba-treptow-koepenick/politik-und-verwaltung/aemter/schul-und-sportamt/schule/weiterfuehrende-schulen-in-treptow-koepenick-1626581.php"
    }
   },
@@ -586,7 +586,7 @@
     "Erstwünsche 2026/27": "145",
     "Nachfrage Hinweis": "",
     "Kosten": "kostenfrei",
-    "Notizen": "neu (seit 2026/27), Bezirk Lichtenberg; Website noch sehr dünn",
+    "Notizen": "amtlich: „17. Schule (Integrierte Sekundarschule)“; neu (seit 2026/27), Bezirk Lichtenberg; Website noch sehr dünn",
     "Quelle": "https://zukunftscampus-karlshorst.de/"
    }
   },
@@ -710,7 +710,7 @@
     "Erstwünsche 2026/27": "82",
     "Nachfrage Hinweis": "",
     "Kosten": "kostenfrei",
-    "Notizen": "neu seit 2025; unternachgefragt (162 / 82); Standort-Umzug 2026 geplant – Adresse prüfen",
+    "Notizen": "amtlich: „15. Schule (Integrierte Sekundarschule)“; neu seit 2025; unternachgefragt (162 / 82); Standort-Umzug 2026 geplant – Adresse prüfen",
     "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=31336"
    }
   },
@@ -1011,8 +1011,8 @@
     "Bezirk": "Treptow-Köpenick",
     "Adresse": "Schnellerstraße 1, 12439 Berlin",
     "Abschlüsse vor Ort": "",
-    "Eigene Oberstufe": "unklar",
-    "Abitur vor Ort": "unklar",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
     "Ganztag": "",
     "Profil / Schwerpunkte": "Lernen ohne Notendruck, schriftliche Beurteilungen",
     "Tag der offenen Tür": "",
@@ -1332,6 +1332,750 @@
     "Kosten": "Schulgeld unklar (Tabelle nur auf Anfrage beim Sekretariat), Ermäßigung möglich",
     "Notizen": "Anmeldung = unverbindliche Interessenbekundung, keine Bildungsgangempfehlung nötig; Status (anerkannt?) und Aufnahme Berliner Kinder nicht angegeben – erfragen: sekretariat.gsk@v.fawz.de",
     "Quelle": "https://www.gesamtschule-kw.de/unser-profil/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5567594,
+     52.490623
+    ]
+   },
+   "properties": {
+    "Schule": "Georg-Klingenberg-Schule",
+    "Schulnummer": "10K06",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Biesdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Alberichstraße 24, 12683 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "130",
+    "Erstwünsche 2026/27": "38",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30884"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.602342,
+     52.4465947
+    ]
+   },
+   "properties": {
+    "Schule": "Flatow-Oberschule",
+    "Schulnummer": "09A07",
+    "Schulform": "Integrierte Sekundarschule (Sportschule)",
+    "Träger": "staatlich",
+    "Ortsteil": "Köpenick",
+    "Bezirk": "Treptow-Köpenick",
+    "Adresse": "Birkenstraße 11, 12559 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "",
+    "Erstwünsche 2026/27": "",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "Schul- und Leistungssportzentrum: Aufnahme nur mit Nachweis sportlicher Eignung",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30572"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5491004,
+     52.5121139
+    ]
+   },
+   "properties": {
+    "Schule": "Otto-Nagel-Gymnasium",
+    "Schulnummer": "10Y02",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Biesdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Schulstraße 11, 12683 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "160",
+    "Erstwünsche 2026/27": "103",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "laut Recherche nur eine Regelklasse 7 (sonst Profil-/grundständige Klassen) – prüfen",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30800"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.516034,
+     52.4228597
+    ]
+   },
+   "properties": {
+    "Schule": "Clay-Schule",
+    "Schulnummer": "08K05",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Rudow",
+    "Bezirk": "Neukölln",
+    "Adresse": "Neudecker Weg 22, 12355 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "208",
+    "Erstwünsche 2026/27": "380",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30056"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5157208,
+     52.5081442
+    ]
+   },
+   "properties": {
+    "Schule": "Alexander-Puschkin-Schule",
+    "Schulnummer": "11K01",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Friedrichsfelde",
+    "Bezirk": "Lichtenberg",
+    "Adresse": "Massower Straße 37, 10315 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "104",
+    "Erstwünsche 2026/27": "150",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30811"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5922216,
+     52.5261799
+    ]
+   },
+   "properties": {
+    "Schule": "12. Schule (Gymnasium) Marzahn-Hellersdorf",
+    "Schulnummer": "10Y12",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Erich-Kästner-Straße 52, 12619 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "im Aufbau (lt. Schulverzeichnis angehakt)",
+    "Abitur vor Ort": "im Aufbau",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "94",
+    "Erstwünsche 2026/27": "102",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "neu gegründet, noch ohne Namen; Oberstufe im Schulverzeichnis angehakt, besteht aber vermutlich erst in einigen Jahren",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=31323"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5080931,
+     52.4047326
+    ]
+   },
+   "properties": {
+    "Schule": "Hannah-Arendt-Gymnasium",
+    "Schulnummer": "08Y06",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Rudow",
+    "Bezirk": "Neukölln",
+    "Adresse": "Elfriede-Kuhr-Straße 17, 12355 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "128",
+    "Erstwünsche 2026/27": "173",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30236"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5519924,
+     52.5330211
+    ]
+   },
+   "properties": {
+    "Schule": "Wilhelm-von-Siemens-Gymnasium",
+    "Schulnummer": "10Y03",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Biesdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Allee der Kosmonauten 134, 12683 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "32",
+    "Erstwünsche 2026/27": "48",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30991"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.589515,
+     52.5343434
+    ]
+   },
+   "properties": {
+    "Schule": "Caspar-David-Friedrich-Schule",
+    "Schulnummer": "10K07",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Alte Hellersdorfer Straße 7, 12629 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "156",
+    "Erstwünsche 2026/27": "166",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30742"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5126525,
+     52.5241756
+    ]
+   },
+   "properties": {
+    "Schule": "12. Schule (Gymnasium) Lichtenberg",
+    "Schulnummer": "11Y12",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Friedrichsfelde",
+    "Bezirk": "Lichtenberg",
+    "Adresse": "Allee der Kosmonauten 20, 10315 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "im Aufbau (lt. Schulverzeichnis angehakt)",
+    "Abitur vor Ort": "im Aufbau",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "160",
+    "Erstwünsche 2026/27": "90",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "neu gegründet, noch ohne Namen; Oberstufe im Schulverzeichnis angehakt, besteht aber vermutlich erst in einigen Jahren",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=31319"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5139044,
+     52.5248369
+    ]
+   },
+   "properties": {
+    "Schule": "Kosmos-Schule (ISS)",
+    "Schulnummer": "11K15",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Friedrichsfelde",
+    "Bezirk": "Lichtenberg",
+    "Adresse": "Allee der Kosmonauten 22, 10315 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "156",
+    "Erstwünsche 2026/27": "228",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "in der Senatsstatistik als „15. Schule“ geführt",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=31318"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4738306,
+     52.4271718
+    ]
+   },
+   "properties": {
+    "Schule": "Gemeinschaftsschule Campus Efeuweg",
+    "Schulnummer": "08K13",
+    "Schulform": "Gemeinschaftsschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Gropiusstadt",
+    "Bezirk": "Neukölln",
+    "Adresse": "Efeuweg 34, 12357 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "104",
+    "Erstwünsche 2026/27": "55",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=31187"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5968591,
+     52.5371643
+    ]
+   },
+   "properties": {
+    "Schule": "Wolfgang-Amadeus-Mozart-Schule",
+    "Schulnummer": "10K10",
+    "Schulform": "Gemeinschaftsschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Cottbusser Straße 23, 12627 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "104",
+    "Erstwünsche 2026/27": "47",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30926"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4887033,
+     52.4189934
+    ]
+   },
+   "properties": {
+    "Schule": "Kepler-Schule",
+    "Schulnummer": "08K12",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Rudow",
+    "Bezirk": "Neukölln",
+    "Adresse": "Bildhauerweg 9, 12355 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "182",
+    "Erstwünsche 2026/27": "21",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=31044"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4727425,
+     52.4224124
+    ]
+   },
+   "properties": {
+    "Schule": "Hermann-von-Helmholtz-Schule",
+    "Schulnummer": "08K02",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Gropiusstadt",
+    "Bezirk": "Neukölln",
+    "Adresse": "Wutzkyallee 68, 12353 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "104",
+    "Erstwünsche 2026/27": "55",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30054"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5864567,
+     52.5429999
+    ]
+   },
+   "properties": {
+    "Schule": "Ernst-Haeckel-Schule",
+    "Schulnummer": "10K02",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Luckenwalder Straße 53, 12629 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "189",
+    "Erstwünsche 2026/27": "321",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30847"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.6213581,
+     52.5287619
+    ]
+   },
+   "properties": {
+    "Schule": "Konrad-Wachsmann-Schule",
+    "Schulnummer": "10K09",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Geithainer Straße 12, 12627 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "135",
+    "Erstwünsche 2026/27": "91",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30739"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.590718,
+     52.5430555
+    ]
+   },
+   "properties": {
+    "Schule": "Sartre-Gymnasium",
+    "Schulnummer": "10Y08",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Kyritzer Straße 103, 12629 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "160",
+    "Erstwünsche 2026/27": "197",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30846"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4807497,
+     52.5108832
+    ]
+   },
+   "properties": {
+    "Schule": "Mildred-Harnack-Schule",
+    "Schulnummer": "11K02",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Rummelsburg",
+    "Bezirk": "Lichtenberg",
+    "Adresse": "Schulze-Boysen-Straße 12, 10365 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "156",
+    "Erstwünsche 2026/27": "199",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "Europaschule – laut Recherche wird Spanisch vorausgesetzt",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30812"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.6185443,
+     52.5343713
+    ]
+   },
+   "properties": {
+    "Schule": "Melanchthon-Gymnasium",
+    "Schulnummer": "10Y11",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Adele-Sandrock-Straße 73, 12627 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "192",
+    "Erstwünsche 2026/27": "123",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30562"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.5949892,
+     52.5456119
+    ]
+   },
+   "properties": {
+    "Schule": "Jean-Piaget-Schule",
+    "Schulnummer": "10K05",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Hellersdorf",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Mittenwalder Straße 5, 12629 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "130",
+    "Erstwünsche 2026/27": "104",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30874"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.556138,
+     52.5533276
+    ]
+   },
+   "properties": {
+    "Schule": "Tagore-Gymnasium",
+    "Schulnummer": "10Y01",
+    "Schulform": "Gymnasium",
+    "Träger": "staatlich",
+    "Ortsteil": "Marzahn",
+    "Bezirk": "Marzahn-Hellersdorf",
+    "Adresse": "Sella-Hasse-Straße 25, 12687 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "160",
+    "Erstwünsche 2026/27": "116",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "Neubau geplant – Standort 2027/28 prüfen",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30799"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4810045,
+     52.5155831
+    ]
+   },
+   "properties": {
+    "Schule": "Schule am Rathaus",
+    "Schulnummer": "11K06",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Lichtenberg",
+    "Bezirk": "Lichtenberg",
+    "Adresse": "Rathausstraße 8, 10367 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "nein (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "nein",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "96",
+    "Erstwünsche 2026/27": "102",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "Grenznote 2026/27: 2,7 (Bezirk Lichtenberg)",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30818"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4500171,
+     52.458361
+    ]
+   },
+   "properties": {
+    "Schule": "Otto-Hahn-Schule",
+    "Schulnummer": "08K03",
+    "Schulform": "Integrierte Sekundarschule",
+    "Träger": "staatlich",
+    "Ortsteil": "Britz",
+    "Bezirk": "Neukölln",
+    "Adresse": "Buschkrugallee 63, 12359 Berlin",
+    "Abschlüsse vor Ort": "",
+    "Eigene Oberstufe": "ja (lt. Schulverzeichnis)",
+    "Abitur vor Ort": "ja",
+    "Ganztag": "",
+    "Profil / Schwerpunkte": "",
+    "Tag der offenen Tür": "",
+    "Plätze 2026/27": "130",
+    "Erstwünsche 2026/27": "160",
+    "Nachfrage Hinweis": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "",
+    "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30055"
    }
   }
  ]

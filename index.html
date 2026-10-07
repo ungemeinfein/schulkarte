@@ -19,13 +19,13 @@
       <p id="hint" class="hint"></p>
 
       <div class="mode" role="radiogroup">
-        <label><input type="radio" name="mode" value="bike" checked /> Fahrrad</label>
-        <label><input type="radio" name="mode" value="transit" /> ÖPNV</label>
+        <label><input type="radio" name="mode" value="bike" /> Fahrrad</label>
+        <label><input type="radio" name="mode" value="transit" checked /> ÖPNV</label>
       </div>
 
       <label class="slider">
-        <span>Max. <strong id="minLabel">25</strong> min</span>
-        <input id="minutes" type="range" min="10" max="45" step="5" value="25" />
+        <span>Max. <strong id="minLabel">40</strong> min</span>
+        <input id="minutes" type="range" min="10" max="45" step="5" value="40" />
       </label>
 
       <div class="mode source" role="radiogroup" title="Woher die Flächen auf der Karte kommen">
@@ -59,14 +59,6 @@
       <label><input type="checkbox" value="privat" checked /> privat (Schulgeld)</label>
     </section>
 
-    <section class="summary">
-      <h2 id="resultTitle">Schulen</h2>
-      <p class="legend">
-        <span class="dot hit"></span> in der Überlappung
-        <span class="dot dim"></span> außerhalb
-      </p>
-      <p id="hitRule" class="hint"></p>
-    </section>
   </aside>
 
   <div class="splitter v" data-var="--left" data-dir="1" data-default="280" title="Ziehen zum Ändern der Breite · Doppelklick: Standard"></div>
@@ -101,7 +93,7 @@
 
   <section id="tablePane" class="pane">
     <div class="pane-head">
-      <h2>Schulen <span id="tableCount" class="count"></span></h2>
+      <h2>Schulen <span id="resultTitle" class="count"></span></h2>
       <div class="table-tools">
         <label><input type="checkbox" id="tableOnlyHits" /> nur Treffer</label>
         <button id="export" disabled title="Treffer als CSV herunterladen">CSV</button>

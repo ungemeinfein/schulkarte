@@ -84,7 +84,7 @@ td .approx { color: #9ca3af; }
 .other-district { color: #92400e; }
 td .tr { font-size: 10px; color: var(--muted); margin-left: 2px; }
 .filters { display: grid; gap: 2px; font-size: 13px; }
-.filters h2, .summary h2 { margin-bottom: 4px; }
+.filters h2 { margin-bottom: 4px; }
 .legend { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; margin: 4px 0 0; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #14532d; }
 .dot.hit { background: var(--hit); }
@@ -153,9 +153,14 @@ td .tr { font-size: 10px; color: var(--muted); margin-left: 2px; }
 .ev-actions .src { font-size: 13px; text-decoration: none; color: var(--muted); }
 
 /* ---------- Karte ---------- */
-.map-search { background: #fff; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); width: min(300px, 70vw); font: 13px/1.3 system-ui, sans-serif; }
-.map-search form { display: flex; }
-.map-search input { flex: 1; min-width: 0; border: 0; padding: 7px 9px; font: inherit; border-radius: 6px 0 0 6px; }
+.map-search { background: #fff; border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); width: min(300px, 70vw); font: 13px/1.3 system-ui, sans-serif; display: flex; flex-wrap: wrap; }
+.map-search.collapsed { width: auto; }
+.map-search.collapsed form, .map-search.collapsed .map-search-results { display: none; }
+.map-search-toggle { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border: 0; background: transparent; color: #374151; cursor: pointer; border-radius: 6px; }
+.map-search-toggle:hover, .map-search-toggle[aria-expanded="true"] { color: var(--A); }
+.map-search form { display: flex; flex: 1; min-width: 0; }
+.map-search-results { flex-basis: 100%; }
+.map-search input { flex: 1; min-width: 0; border: 0; padding: 7px 4px; font: inherit; }
 .map-search input:focus { outline: 2px solid var(--A); outline-offset: -2px; }
 .map-search form button { border: 0; border-left: 1px solid var(--line); background: #f9fafb; padding: 0 10px; font: inherit; cursor: pointer; border-radius: 0 6px 6px 0; }
 .map-search-results { list-style: none; margin: 0; padding: 4px; border-top: 1px solid var(--line); max-height: 240px; overflow: auto; }

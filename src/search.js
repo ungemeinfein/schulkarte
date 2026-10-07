@@ -9,8 +9,11 @@ export function addSearchControl(map, onPick) {
   const Control = L.Control.extend({
     options: { position: 'topright' },
     onAdd() {
-      const box = L.DomUtil.create('div', 'map-search');
+      const box = L.DomUtil.create('div', 'map-search collapsed');
       box.innerHTML = `
+        <button type="button" class="map-search-toggle" aria-label="Adresse suchen" title="Adresse suchen" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
         <form role="search">
           <input id="placeSearch" type="search" placeholder="Adresse oder Ort suchen …" aria-label="Adresse oder Ort suchen" autocomplete="off" />
           <button type="submit" aria-label="Suchen">Suchen</button>
@@ -22,7 +25,15 @@ export function addSearchControl(map, onPick) {
       const form = box.querySelector('form');
       const input = box.querySelector('input');
       const list = box.querySelector('ol');
+      const toggle = box.querySelector('.map-search-toggle');
       const close = () => { list.hidden = true; list.replaceChildren(); };
+      const setOpen = (open) => {
+        box.classList.toggle('collapsed', !open);
+        toggle.setAttribute('aria-expanded', String(open));
+        if (open) input.focus();
+        else { close(); input.value = ''; }
+      };
+      toggle.addEventListener('click', () => setOpen(box.classList.contains('collapsed')));
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -54,7 +65,7 @@ export function addSearchControl(map, onPick) {
               b.className = `pick pick-${label}`;
               b.textContent = label;
               b.title = `Als ${label} setzen`;
-              b.onclick = () => { onPick(label, lonLat); close(); input.value = ''; };
+              b.onclick = () => { onPick(label, lonLat); setOpen(false); };
               li.append(b);
             }
             return li;
@@ -63,7 +74,7 @@ export function addSearchControl(map, onPick) {
           list.innerHTML = '<li class="msg">Suche gerade nicht erreichbar. Punkt per Klick in die Karte setzen.</li>';
         }
       });
-      input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { close(); input.blur(); } });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setOpen(false); toggle.focus(); } });
       return box;
     },
   });
