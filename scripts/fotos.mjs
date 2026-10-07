@@ -20,7 +20,7 @@ for (const [schule, files] of Object.entries(auswahl)) {
   if (!schulen.has(schule)) throw new Error(`Unbekannte Schule: ${schule}`);
   const u = new URL('https://commons.wikimedia.org/w/api.php');
   u.search = new URLSearchParams({
-    action: 'query', format: 'json', prop: 'imageinfo|coordinates', iiprop: 'url|extmetadata', iiurlwidth: '640',
+    action: 'query', format: 'json', prop: 'imageinfo|coordinates', iiprop: 'url|extmetadata', iiurlwidth: '500',
     titles: files.map((f) => `File:${f}`).join('|'),
   });
   const data = await (await fetch(u, { headers: { 'User-Agent': UA } })).json();

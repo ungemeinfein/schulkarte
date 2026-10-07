@@ -7,7 +7,7 @@ import Papa from 'papaparse';
 const CSV = 'data/schulen.csv';
 const OUT = 'public/schulen.geojson';
 const OVERRIDES = 'data/geocode-overrides.json'; // optional: { "Schule": [lon, lat] }
-const UA = 'schulkarte-local/0.1 (private, non-commercial school map)';
+const UA = 'schulkarte/0.1 (https://github.com/ungemeinfein/schulkarte)';
 const BERLIN_VIEWBOX = '13.08,52.68,13.77,52.33';
 
 const csv = fs.readFileSync(CSV, 'utf8').replace(/^﻿/, '');

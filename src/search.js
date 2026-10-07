@@ -6,6 +6,7 @@ const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 const VIEWBOX = '12.9,52.75,14.1,52.2'; // Berlin + Umland
 
 export function addSearchControl(map, onPick) {
+  let api = { open() {} };
   const Control = L.Control.extend({
     options: { position: 'topright' },
     onAdd() {
@@ -18,7 +19,7 @@ export function addSearchControl(map, onPick) {
           <input id="placeSearch" type="search" placeholder="Adresse oder Ort suchen …" aria-label="Adresse oder Ort suchen" autocomplete="off" />
           <button type="submit" aria-label="Suchen">Suchen</button>
         </form>
-        <ol class="map-search-results" hidden></ol>`;
+        <ol class="map-search-results" hidden aria-live="polite"></ol>`;
       L.DomEvent.disableClickPropagation(box);
       L.DomEvent.disableScrollPropagation(box);
 
@@ -34,6 +35,7 @@ export function addSearchControl(map, onPick) {
         else { close(); input.value = ''; }
       };
       toggle.addEventListener('click', () => setOpen(box.classList.contains('collapsed')));
+      api = { open: (label) => { setOpen(true); input.placeholder = `Adresse für Ort ${label} suchen …`; } };
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -52,7 +54,8 @@ export function addSearchControl(map, onPick) {
           }
           list.replaceChildren(...hits.map((h) => {
             const li = document.createElement('li');
-            const name = document.createElement('span');
+            const name = document.createElement('button');
+            name.type = 'button';
             name.className = 'name';
             name.textContent = h.display_name.split(',').slice(0, 3).join(',');
             name.title = h.display_name;
@@ -64,7 +67,8 @@ export function addSearchControl(map, onPick) {
               b.type = 'button';
               b.className = `pick pick-${label}`;
               b.textContent = label;
-              b.title = `Als ${label} setzen`;
+              b.title = `Als Ort ${label} setzen`;
+              b.setAttribute('aria-label', `${h.display_name.split(',').slice(0, 2).join(',')} als Ort ${label} setzen`);
               b.onclick = () => { onPick(label, lonLat); setOpen(false); };
               li.append(b);
             }
@@ -79,4 +83,5 @@ export function addSearchControl(map, onPick) {
     },
   });
   map.addControl(new Control());
+  return { open: (label) => api.open(label) };
 }

@@ -56,11 +56,14 @@ export function schoolDay() {
 
 // ---------- Fahrrad ----------
 
-const valhallaPost = (path, body) => valhallaQueue(() => getJson(`${VALHALLA}/${path}`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-}));
+const valhallaPost = (path, body, stale = () => false) => valhallaQueue(() => {
+  if (stale()) throw new Error('veraltet');
+  return getJson(`${VALHALLA}/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+});
 
 // { [Schulname]: Minuten | null }
 export async function bikeTimes(point, schools) {
@@ -77,17 +80,21 @@ export async function bikeTimes(point, schools) {
 }
 
 const bikeIsoCache = new Map();
+const latestBikeReq = new Map(); // pointKey → zuletzt gewünschte Minuten
 export function bikeIsochrone(point, minutes) {
   const key = `${pointKey(point)}|${minutes}`;
+  latestBikeReq.set(pointKey(point), minutes);
   if (!bikeIsoCache.has(key)) {
     const [lon, lat] = round(point);
+    // Veraltete Anfragen (Schieberegler weitergezogen) gar nicht erst senden.
+    const stale = () => latestBikeReq.get(pointKey(point)) !== minutes;
     const p = valhallaPost('isochrone', {
       locations: [{ lat, lon }],
       costing: 'bicycle',
       costing_options: BIKE_COSTING,
       contours: [{ time: minutes }],
       polygons: true,
-    }).then((fc) => fc.features.find((f) => /Polygon/.test(f.geometry.type)));
+    }, stale).then((fc) => fc.features.find((f) => /Polygon/.test(f.geometry.type)));
     p.catch(() => bikeIsoCache.delete(key));
     bikeIsoCache.set(key, p);
   }
@@ -197,13 +204,31 @@ function reachableStops(point) {
 }
 
 // Fläche = Vereinigung von Fußweg-Kreisen um alle in der Restzeit erreichbaren Haltestellen.
+// Ergebnis pro Punkt und Minuten zwischenspeichern; die Vereinigung kostet einige 100 ms.
+const transitIsoCache = new Map();
 export async function transitIsochrone(point, minutes) {
+  const key = `${pointKey(point)}|${minutes}`;
+  if (!transitIsoCache.has(key)) {
+    const p = buildTransitIsochrone(point, minutes);
+    p.catch(() => transitIsoCache.delete(key));
+    transitIsoCache.set(key, p);
+  }
+  return transitIsoCache.get(key);
+}
+
+async function buildTransitIsochrone(point, minutes) {
   const { stop, stops } = await reachableStops(point);
   const budget = minutes - stop.walkMin;
-  const circles = stops
+  const candidates = stops
     .map((s) => ({ ...s, radius: Math.min(1000, (budget - s.duration) * WALK_M_PER_MIN / WALK_DETOUR) }))
     .filter((s) => s.radius >= 50)
-    .map((s) => circle(s.location, s.radius / 1000, { steps: 16, units: 'kilometers' }));
+    .sort((a, b) => b.radius - a.radius);
+  // Kreise weglassen, die vollständig in einem größeren liegen.
+  const kept = [];
+  for (const s of candidates) {
+    if (!kept.some((o) => distance(o.location, s.location, { units: 'meters' }) + s.radius <= o.radius)) kept.push(s);
+  }
+  const circles = kept.map((s) => circle(s.location, s.radius / 1000, { steps: 16, units: 'kilometers' }));
   // Startpunkt selbst (zu Fuß)
   const homeRadius = Math.min(1500, (minutes * WALK_M_PER_MIN) / WALK_DETOUR);
   circles.push(circle(round(point), homeRadius / 1000, { steps: 24, units: 'kilometers' }));

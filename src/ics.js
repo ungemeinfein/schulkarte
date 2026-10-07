@@ -99,7 +99,7 @@ function vevent(t, stamp) {
   lines.push(`SUMMARY:${escapeText(`${names}: ${t.titel}`)}`);
   if (t.ort) lines.push(`LOCATION:${escapeText(t.ort)}`);
   if (desc.length) lines.push(`DESCRIPTION:${escapeText(desc.join('\n'))}`);
-  if (t.quelle) lines.push(`URL:${t.quelle}`);
+  if (t.quelle) lines.push(`URL:${String(t.quelle).replace(/[\r\n]/g, '')}`);
   lines.push('END:VEVENT');
   return lines;
 }

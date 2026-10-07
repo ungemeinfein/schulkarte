@@ -6,18 +6,20 @@ import { bikeTimes, pointKey, schoolDay, transitTimes } from './routing.js';
 import { initTermine, nextEventFor, setHits } from './termine.js';
 import { initSplitters } from './splitters.js';
 import { addSearchControl } from './search.js';
+import { escapeHtml, safeUrl } from './util.js';
 import './style.css';
 
 const STORAGE_KEY = 'schulkarte.points';
-const TABLE_KEY = 'schulkarte.table';
+const TABLE_KEY = 'schulkarte.table.v2';
 const SOURCE_KEY = 'schulkarte.source';
 const TIMES_KEY = 'schulkarte.times';
-const COLORS = { A: '#2563eb', B: '#db2777', overlap: '#16a34a' };
+const COLORS = { A: '#2563eb', B: '#be185d', overlap: '#16a34a' };
+const MODE_LABEL = { bike: 'Rad', transit: 'ÖPNV' };
 const SOURCE_LABEL = {
-  approx: 'Näherung: Kreis (Luftlinie)',
-  'approx-fallback': 'Näherung: Kreis – API-Abruf fehlgeschlagen',
-  valhalla: 'Echt: Valhalla-Radrouting (12 km/h, ruhige Straßen)',
-  bvg: 'Echt: BVG-Haltestellen + Fußweg (Di 7:15)',
+  approx: 'Grobe Kreise nach Luftlinie',
+  'approx-fallback': 'Genaue Bereiche gerade nicht abrufbar – die Karte zeigt grobe Kreise.',
+  valhalla: 'Rad über ruhige Straßen, ca. 12 km/h',
+  bvg: 'ÖPNV ab der nächsten Haltestelle, inkl. Fußweg',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -34,12 +36,12 @@ const state = {
   overlap: null,
   source: loadJson(SOURCE_KEY).source === 'real' ? 'real' : 'approx',
   times: loadJson(TIMES_KEY), // { "bike|lon,lat": {times}, "transit|lon,lat": {date, stop, times} }
-  table: { sort: 'status', dir: 1, onlyHits: false, ...loadJson(TABLE_KEY) },
+  table: { sort: 'max', dir: 1, onlyHits: true, ...loadJson(TABLE_KEY) },
 };
 
 // ---------- Karte ----------
-const map = L.map('map', { zoomControl: true }).setView([52.445, 13.56], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+const map = L.map('map', { zoomControl: true, keyboard: true });
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende ' +
     '(<a href="https://www.openstreetmap.org/fixthemap">Karte verbessern</a>) · Routing: ' +
@@ -60,7 +62,7 @@ function placePoint(label, lonLat) {
   if (markers[label]) {
     markers[label].setLatLng(latLng);
   } else {
-    markers[label] = L.marker(latLng, { icon: pinIcon(label), draggable: true, zIndexOffset: 1000 })
+    markers[label] = L.marker(latLng, { icon: pinIcon(label), draggable: true, zIndexOffset: 1000, title: `Ort ${label} (verschiebbar)`, alt: `Ort ${label}` })
       .addTo(map)
       .on('dragend', (e) => {
         const { lat, lng } = e.target.getLatLng();
@@ -75,26 +77,39 @@ function placePoint(label, lonLat) {
 
 const nextLabel = () => state.armed ?? (!state.points.A ? 'A' : !state.points.B ? 'B' : null);
 
-map.on('click', (e) => {
-  const label = nextLabel();
-  if (!label) return;
-  const moved = Boolean(state.points[label]);
-  placePoint(label, [e.latlng.lng, e.latlng.lat]);
-  state.armed = null;
-  const next = nextLabel();
-  toast(`Ort ${label} ${moved ? 'neu ' : ''}gesetzt${next ? ` – jetzt ${next} setzen` : ''}`, label);
-  update();
-});
-
-addSearchControl(map, (label, lonLat) => {
+function pointSet(label, lonLat) {
   const moved = Boolean(state.points[label]);
   placePoint(label, lonLat);
   state.armed = null;
-  map.setView([lonLat[1], lonLat[0]], Math.max(map.getZoom(), 14));
   const next = nextLabel();
-  toast(`Ort ${label} ${moved ? 'neu ' : ''}gesetzt${next ? ` – jetzt ${next} setzen` : ''}`, label);
+  toast(`Ort ${label} ${moved ? 'neu ' : ''}gesetzt${next ? ` – jetzt Ort ${next} setzen` : ''}`, label);
   update();
+}
+
+map.on('click', (e) => {
+  const label = nextLabel();
+  if (label) pointSet(label, [e.latlng.lng, e.latlng.lat]);
 });
+
+const search = addSearchControl(map, (label, lonLat) => {
+  map.setView([lonLat[1], lonLat[0]], Math.max(map.getZoom(), 14));
+  pointSet(label, lonLat);
+});
+
+// Legende unten links
+const Legend = L.Control.extend({
+  options: { position: 'bottomleft' },
+  onAdd() {
+    const el = L.DomUtil.create('div', 'map-legend');
+    el.innerHTML = `
+      <span><i class="lg-area lg-A"></i>Bereich A</span>
+      <span><i class="lg-area lg-B"></i>Bereich B</span>
+      <span><i class="lg-dot lg-hit"></i>erreichbar</span>
+      <span><i class="lg-dot lg-dim"></i>nicht erreichbar</span>`;
+    return el;
+  },
+});
+map.addControl(new Legend());
 
 // Kurze Rückmeldung oben auf der Karte.
 const toastEl = Object.assign(document.createElement('div'), { className: 'map-toast', role: 'status' });
@@ -106,14 +121,13 @@ function toast(text, label) {
   toastEl.dataset.label = label ?? '';
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
 }
 
 // Fadenkreuz, solange ein Klick in die Karte einen Punkt setzt.
 function updatePlacing() {
   const label = nextLabel();
   map.getContainer().classList.toggle('placing', Boolean(label));
-  map.getContainer().dataset.placing = label ?? '';
   for (const l of ['A', 'B']) $(`set${l}`).setAttribute('aria-pressed', String(state.armed === l));
 }
 
@@ -137,17 +151,21 @@ function costCategory(p) {
   return /^kostenfrei/i.test(p.Kosten ?? '') || /^staatlich$/i.test(p['Träger'] ?? '') ? 'staatlich' : 'privat';
 }
 
+// Fotos werden erst fürs Popup gebraucht – nicht auf sie warten.
+let fotos = {};
+fetch(`${import.meta.env.BASE_URL}fotos.json`).then((r) => (r.ok ? r.json() : {})).then((f) => (fotos = f)).catch(() => {});
+
 const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`)).json()).features.map((f) => {
   const p = f.properties;
   const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), lonLat: f.geometry.coordinates, hit: false };
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
-    .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] })
-    .bindTooltip(p.Schule, { direction: 'top', offset: [0, -6] });
+    .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 40] })
+    .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] });
   return school;
 });
 const byName = new Map(schools.map((s) => [s.p.Schule, s]));
-// Freie Fotos von Wikimedia Commons (public/fotos.json, erzeugt mit npm run fotos).
-const fotos = await fetch(`${import.meta.env.BASE_URL}fotos.json`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+// Karte auf die Schulen ausrichten (kein fest eingebauter Mittelpunkt).
+map.fitBounds(L.latLngBounds(schools.filter((s) => s.p.Bezirk !== 'Brandenburg').map((s) => [s.lonLat[1], s.lonLat[0]])), { padding: [20, 20] });
 
 function km(school, label) {
   const pt = state.points[label];
@@ -160,9 +178,15 @@ function approxMin(school, label, mode = state.mode) {
 }
 
 // Echte Fahrzeit: undefined = noch nicht berechnet, null = keine Verbindung gefunden.
+// Einträge pro Render einmal nachschlagen (pointKey baut jedes Mal einen String).
+let entryCache = new Map();
 function timeEntry(label, mode) {
-  const pt = state.points[label];
-  return pt ? state.times[`${mode}|${pointKey(pt)}`] : undefined;
+  const k = `${label}|${mode}`;
+  if (!entryCache.has(k)) {
+    const pt = state.points[label];
+    entryCache.set(k, pt ? state.times[`${mode}|${pointKey(pt)}`] : undefined);
+  }
+  return entryCache.get(k);
 }
 function realInfo(school, label, mode) {
   const e = timeEntry(label, mode);
@@ -181,16 +205,17 @@ function bestMin(school, label, mode = state.mode) {
   return r === undefined ? approxMin(school, label, mode) : r;
 }
 
+// ---------- Popup ----------
 function carouselHtml(name) {
   const list = fotos[name];
   if (!list?.length) return '';
   const nav = list.length > 1
     ? `<button type="button" class="car-prev" aria-label="Vorheriges Foto">‹</button>
        <button type="button" class="car-next" aria-label="Nächstes Foto">›</button>
-       <span class="car-count">1 / ${list.length}</span>`
+       <span class="car-count" aria-live="polite">1 / ${list.length}</span>`
     : '';
   return `<figure class="carousel" data-school="${escapeHtml(name)}" data-i="0">
-      <div class="car-frame"><img src="${escapeHtml(list[0].thumb)}" alt="${escapeHtml(list[0].title)}" loading="lazy" />${nav}</div>
+      <div class="car-frame"><img src="${escapeHtml(safeUrl(list[0].thumb))}" alt="${escapeHtml(list[0].title)}" loading="lazy" width="500" height="333" />${nav}</div>
       <figcaption class="car-credit"></figcaption>
     </figure>`;
 }
@@ -202,41 +227,76 @@ function showFoto(fig, i) {
   const f = list[idx];
   fig.dataset.i = idx;
   const img = fig.querySelector('img');
-  img.src = f.thumb;
+  img.src = safeUrl(f.thumb);
   img.alt = f.title;
   const count = fig.querySelector('.car-count');
   if (count) count.textContent = `${idx + 1} / ${n}`;
   const credit = fig.querySelector('.car-credit');
   credit.replaceChildren('Foto: ', f.author, ' · ');
-  const lic = Object.assign(document.createElement('a'), { href: f.licenseUrl || f.page, target: '_blank', rel: 'noopener', textContent: f.license || 'Lizenz' });
-  const src = Object.assign(document.createElement('a'), { href: f.page, target: '_blank', rel: 'noopener', textContent: 'Wikimedia Commons' });
-  credit.append(lic, ' · ', src);
+  const link = (href, text) => Object.assign(document.createElement('a'), { href: safeUrl(href), target: '_blank', rel: 'noopener', textContent: text });
+  credit.append(link(f.licenseUrl || f.page, f.license || 'Lizenz'), ' · ', link(f.page, 'Wikimedia Commons'));
 }
 
-map.on('popupopen', (e) => {
-  const fig = e.popup.getElement()?.querySelector('.carousel');
-  if (!fig) return;
-  showFoto(fig, 0);
-  fig.querySelector('.car-prev')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) - 1));
-  fig.querySelector('.car-next')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) + 1));
-  fig.querySelector('img').addEventListener('load', () => e.popup.update(), { once: true });
-});
+function timeText(s, l) {
+  if (!state.points[l]) return '';
+  const fmt = (mode) => {
+    const r = realInfo(s, l, mode);
+    if (r === null) return `${MODE_LABEL[mode]} –`;
+    if (r === undefined) return `${MODE_LABEL[mode]} ≈${approxMin(s, l, mode)} min`;
+    if (mode === 'bike') return `Rad ${r} min`;
+    return `ÖPNV ${r.min} min${r.lines.length ? ` (${r.lines.join(' → ')})` : ' (zu Fuß)'}`;
+  };
+  return `${fmt('transit')} · ${fmt('bike')}`;
+}
 
-function popupHtml({ p }) {
-  const row = (k, v) => (v ? `<tr><th>${k}</th><td>${escapeHtml(v)}</td></tr>` : '');
-  return `${carouselHtml(p.Schule)}<div class="popup-body"><strong>${escapeHtml(p.Schule)}</strong>
+function popupHtml(s) {
+  const { p } = s;
+  const row = (k, v) => (v ? `<tr><th scope="row">${k}</th><td>${escapeHtml(v)}</td></tr>` : '');
+  const d = demand(s);
+  const next = nextEventFor(p.Schule);
+  const abi = `${s.abi}${p['Eigene Oberstufe'] ? ` – ${p['Eigene Oberstufe']}` : ''}`;
+  return `${carouselHtml(p.Schule)}<div class="popup-body"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3>
     <table class="popup">
+      ${row('Ab Ort A', timeText(s, 'A'))}
+      ${row('Ab Ort B', timeText(s, 'B'))}
       ${row('Schulform', p.Schulform)}
+      ${row('Abitur', abi)}
+      ${row('Kosten', p.Kosten)}
+      ${row('Nachfrage', d == null ? '' : `${Math.round(d * 100)} % (${p['Erstwünsche 2026/27']} Erstwünsche auf ${p['Plätze 2026/27']} Plätze, 2026/27)`)}
+      ${row('Nächster Termin', next ? `${next.start.slice(8, 10)}.${next.start.slice(5, 7)}. ${next.titel}` : '')}
       ${row('Adresse', p.Adresse)}
-      ${row('Oberstufe', p['Eigene Oberstufe'])}
-      ${row('Termine', p['Tag der offenen Tür'])}
-      ${row('Notizen', p.Notizen)}
-    </table></div>`;
+      ${row('Notizen', [p['Nachfrage Hinweis'], p.Notizen].filter(Boolean).join(' · '))}
+    </table>
+    ${safeUrl(p.Quelle) ? `<a class="popup-src" href="${escapeHtml(safeUrl(p.Quelle))}" target="_blank" rel="noopener">Website / Quelle <span class="sr-only">(neuer Tab)</span>↗</a>` : ''}
+    </div>`;
 }
+
+let returnFocus = null;
+map.on('popupopen', (e) => {
+  const el = e.popup.getElement();
+  const fig = el?.querySelector('.carousel');
+  if (fig && fotos[fig.dataset.school]) {
+    showFoto(fig, 0);
+    fig.querySelector('.car-prev')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) - 1));
+    fig.querySelector('.car-next')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) + 1));
+    fig.querySelector('img').addEventListener('load', () => e.popup.update(), { once: true });
+  }
+  if (returnFocus) {
+    el.setAttribute('tabindex', '-1');
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', el.querySelector('.popup-title')?.textContent ?? 'Schule');
+    el.focus();
+  }
+});
+map.on('popupclose', () => {
+  returnFocus?.focus?.();
+  returnFocus = null;
+});
 
 function focusSchool(name) {
   const s = byName.get(name);
   if (!s) return false;
+  returnFocus = document.activeElement;
   map.setView(s.marker.getLatLng(), Math.max(map.getZoom(), 14));
   s.marker.addTo(schoolLayer).openPopup();
   return true;
@@ -248,7 +308,7 @@ let generation = 0;
 async function update() {
   const gen = ++generation;
   const { mode, minutes } = state;
-  const labels = ['A', 'B'].filter((l) => state.points[l]);
+  const labels = setLabels();
 
   const results = await Promise.all(labels.map((l) => reachArea(state.points[l], mode, minutes, state.source)));
   if (gen !== generation) return; // überholt
@@ -260,17 +320,14 @@ async function update() {
     : null;
 
   const sources = [...new Set(results.map((r) => r.source))];
-  $('method').textContent = sources.length
-    ? sources.map((s) => SOURCE_LABEL[s]).join(' · ') +
-      (sources.some((s) => s.startsWith('approx')) ? ` – ${SPEED_KMH[mode]} km/h` : '')
-    : '';
-  $('method').classList.toggle('approx', sources.some((s) => s.startsWith('approx')));
+  $('method').textContent = sources.map((s) => SOURCE_LABEL[s]).join(' · ');
+  $('method').classList.toggle('approx', sources.includes('approx-fallback'));
 
   drawAreas();
   renderSchools();
 }
 
-// Treffer = in allen gesetzten Bereichen (bei einem Punkt: in dessen Bereich).
+// Erreichbar = echte Fahrzeit von allen gesetzten Orten ≤ Limit; ohne echte Zeiten: liegt in allen Flächen.
 function isHit(school) {
   if (hasRealTimes()) {
     return setLabels().every((l) => {
@@ -304,6 +361,7 @@ function drawAreas() {
 const anyArea = () => Boolean(state.areas.A || state.areas.B);
 
 function renderSchools() {
+  entryCache = new Map();
   const visible = schools.filter((s) =>
     (state.forms.has(s.category) || s.category === 'Sonstige') &&
     (state.abi.has(s.abi) || s.abi === 'unklar') &&
@@ -311,31 +369,33 @@ function renderSchools() {
   for (const s of schools) s.hit = anyArea() && isHit(s);
   const hits = visible.filter((s) => s.hit);
 
-  schoolLayer.clearLayers();
-  for (const s of visible) {
+  const visibleSet = new Set(visible);
+  for (const s of schools) {
+    if (!visibleSet.has(s)) { schoolLayer.removeLayer(s.marker); continue; }
     const dim = anyArea() && !s.hit;
     s.marker.setStyle({
-      color: dim ? '#9ca3af' : '#14532d',
-      fillColor: dim ? '#d1d5db' : s.hit ? COLORS.overlap : '#f59e0b',
-      fillOpacity: dim ? 0.6 : 0.95,
+      color: s.hit ? '#14532d' : dim ? '#94a3b8' : '#334155',
+      fillColor: s.hit ? COLORS.overlap : dim ? '#e2e8f0' : '#64748b',
+      fillOpacity: dim ? 0.7 : 0.95,
+      weight: s.hit ? 3 : 2,
       radius: s.hit ? 9 : 7,
     });
-    s.marker.addTo(schoolLayer);
+    if (!schoolLayer.hasLayer(s.marker)) s.marker.addTo(schoolLayer);
     if (s.hit) s.marker.bringToFront();
   }
 
   const both = state.areas.A && state.areas.B;
   $('resultTitle').textContent = !anyArea()
     ? String(visible.length)
-    : `${hits.length} von ${visible.length} ${both ? 'erreichbar von A und B' : 'erreichbar von ' + (state.areas.A ? 'A' : 'B')}`;
+    : `${hits.length} von ${visible.length} erreichbar von ${both ? 'A und B' : state.areas.A ? 'A' : 'B'}`;
   $('export').disabled = hits.length === 0;
   $('export').onclick = () => exportCsv(hits);
 
   $('hint').textContent = state.armed
-    ? `Klick in die Karte setzt ${state.armed}.`
-    : !state.points.A ? 'Klick in die Karte setzt Wohnort A.'
-    : !state.points.B ? 'Klick in die Karte setzt Wohnort B.'
-    : 'Marker sind verschiebbar.';
+    ? `Klick in die Karte oder Adresse suchen, um Ort ${state.armed} zu setzen.`
+    : !state.points.A ? 'Adresse über die Lupe auf der Karte suchen oder in die Karte klicken, um Ort A zu setzen.'
+    : !state.points.B ? 'Jetzt Ort B setzen: Adresse suchen oder in die Karte klicken.'
+    : 'Die Punkte A und B lassen sich auf der Karte verschieben.';
 
   renderTable(visible);
   renderTimesInfo();
@@ -344,8 +404,7 @@ function renderSchools() {
 }
 
 // ---------- Tabelle ----------
-const fmtKm = (v) => (v == null ? '' : v.toFixed(1).replace('.', ','));
-const fmtMin = (v, real) => (v == null ? '' : real ? String(v) : `≈${v}`);
+const fmtKm = (v) => (v == null ? '' : `${v.toFixed(1).replace('.', ',')} km`);
 
 function demand(s) {
   const places = Number(s.p['Plätze 2026/27']);
@@ -354,47 +413,45 @@ function demand(s) {
 }
 
 function maxMin(s) {
-  if (!(state.points.A && state.points.B)) return null;
-  const a = bestMin(s, 'A');
-  const b = bestMin(s, 'B');
-  return a == null || b == null ? null : Math.max(a, b);
+  const mins = setLabels().map((l) => bestMin(s, l));
+  return !mins.length || mins.some((m) => m == null) ? null : Math.max(...mins);
 }
 
-function timeColumn(l, mode, label) {
-  return {
-    key: `${mode}${l}`, label, num: true, cls: `num col-${l}`,
-    title: `${mode === 'bike' ? 'Fahrrad' : 'ÖPNV (Ankunft 8:00)'} ab ${l} – echte Zeit, sonst ≈ Näherung`,
-    value: (s) => bestMin(s, l, mode),
-    html: (s) => {
-      const real = realInfo(s, l, mode);
-      if (real === undefined) return state.points[l] ? `<span class="approx">${fmtMin(approxMin(s, l, mode))}</span>` : '';
-      if (real === null) return '<span class="approx" title="keine Verbindung gefunden">–</span>';
-      if (mode === 'bike') return `<strong>${real}</strong>`;
-      const tip = real.lines.length
-        ? `${real.lines.join(' → ')} · ${real.transfers} Umstieg(e) · ab ${real.stop} (+${real.walkMin} min Fußweg)`
-        : `zu Fuß (${real.walkMin} min, geschätzt)`;
-      return `<strong title="${escapeHtml(tip)}">${real.min}</strong><span class="tr">${real.transfers ? `${real.transfers}×` : ''}</span>`;
-    },
+// Alle Details zu einem Ort für den Hover-Text der Fahrzeit-Spalte.
+function detailLine(s, l) {
+  if (!state.points[l]) return '';
+  const part = (mode) => {
+    const r = realInfo(s, l, mode);
+    if (r === null) return `${MODE_LABEL[mode]}: keine Verbindung`;
+    if (r === undefined) return `${MODE_LABEL[mode]}: ≈${approxMin(s, l, mode)} min (grob)`;
+    if (mode === 'bike') return `Rad: ${r} min`;
+    if (!r.lines.length) return `ÖPNV: ${r.min} min (zu Fuß)`;
+    return `ÖPNV: ${r.min} min (${r.lines.join(' → ')}, ${r.transfers} Umstieg${r.transfers === 1 ? '' : 'e'}, ab ${r.stop} +${r.walkMin} min Fußweg)`;
   };
+  return `Ort ${l} – ${part('transit')} · ${part('bike')} · ${fmtKm(km(s, l))} Luftlinie`;
 }
-const plz = (s) => s.p.Adresse.match(/\b\d{5}\b/)?.[0] ?? '';
 
 const COLUMNS = [
-  { key: 'status', label: '', title: 'In der Überlappung',
+  { key: 'status', label: 'Beide', title: 'Von den gesetzten Orten in der eingestellten Zeit erreichbar',
     value: (s) => (anyArea() ? (s.hit ? 0 : 1) : 0),
-    html: (s) => (anyArea() ? `<span class="dot ${s.hit ? 'hit' : 'dim'}"></span>` : '') },
-  { key: 'name', label: 'Schule', value: (s) => s.p.Schule, text: (s) => s.p.Schule, cls: 'name' },
+    html: (s) => (anyArea()
+      ? `<span class="dot ${s.hit ? 'hit' : 'dim'}" aria-hidden="true"></span><span class="sr-only">${s.hit ? 'erreichbar' : 'nicht erreichbar'}</span>`
+      : '') },
+  { key: 'name', label: 'Schule', value: (s) => s.p.Schule, cls: 'name',
+    html: (s) => `<button type="button" class="linkish" data-school="${escapeHtml(s.p.Schule)}">${escapeHtml(s.p.Schule)}</button>` },
   { key: 'form', label: 'Form', value: (s) => s.category,
-    html: (s) => `<span class="badge b-${s.category}">${s.category}</span>` },
-  { key: 'cost', label: 'Träger', value: (s) => s.cost,
-    html: (s) => `<span class="badge c-${s.cost}">${s.cost === 'privat' ? 'privat €' : 'staatlich'}</span>` },
+    html: (s) => `<span class="badge b-${s.category.replace(' ', '-')}">${s.category}</span>` },
   { key: 'abi', label: 'Abitur', title: 'Abitur an dieser Schule möglich',
     value: (s) => ({ ja: 0, 'im Aufbau': 1, nein: 2 })[s.abi] ?? null,
-    html: (s) => `<span class="badge abi-${s.abi.replace(' ', '-')}">${s.abi}</span>` },
+    html: (s) => `<span class="badge abi-${s.abi.replace(' ', '-')}" title="${escapeHtml(s.p['Eigene Oberstufe'] || '')}">${s.abi}</span>` },
+  { key: 'cost', label: 'Träger', value: (s) => s.cost,
+    html: (s) => `<span class="badge c-${s.cost}" title="${escapeHtml(s.p.Kosten || '')}">${s.cost === 'privat' ? 'privat €' : 'staatlich'}</span>` },
   { key: 'bezirk', label: 'Bezirk', value: (s) => s.p.Bezirk || null,
-    html: (s) => `<span class="${s.p.Bezirk === 'Treptow-Köpenick' ? '' : 'other-district'}" title="${s.p.Bezirk === 'Treptow-Köpenick' ? 'Eigener Bezirk: auch als Zweit-/Drittwunsch realistisch' : 'Anderer Bezirk: bei Zweit-/Drittwunsch haben Kinder aus dem Bezirk Vorrang'}">${escapeHtml(s.p.Bezirk)}</span>` },
+    html: (s) => (s.p.Bezirk === 'Treptow-Köpenick'
+      ? escapeHtml(s.p.Bezirk)
+      : `<span class="other-district" title="Bei Zweit- und Drittwunsch haben Kinder aus diesem Bezirk Vorrang">${escapeHtml(s.p.Bezirk)} <span aria-hidden="true">◆</span><span class="sr-only"> (anderer Bezirk)</span></span>`) },
   { key: 'nachfrage', label: 'Nachfrage', num: true,
-    title: 'Erstwünsche pro Platz 2026/27 (Drs. 19/26317). Über 100 %: Schule vergibt keine Plätze an Zweit-/Drittwünsche',
+    title: 'Erstwünsche pro Platz 2026/27. Über 100 %: keine Plätze für Zweit- und Drittwünsche',
     value: demand,
     html: (s) => {
       const d = demand(s);
@@ -403,89 +460,106 @@ const COLUMNS = [
       const tip = `2026/27: ${s.p['Erstwünsche 2026/27']} Erstwünsche auf ${s.p['Plätze 2026/27']} Plätze${s.p['Nachfrage Hinweis'] ? ` – ${s.p['Nachfrage Hinweis']}` : ''}`;
       return `<span class="demand ${cls}" title="${escapeHtml(tip)}">${Math.round(d * 100)} %${s.p['Nachfrage Hinweis'] ? '*' : ''}</span>`;
     } },
-  { key: 'plz', label: 'PLZ', value: plz, text: plz },
-  { key: 'oberstufe', label: 'Oberstufe (Details)', value: (s) => s.p['Eigene Oberstufe'] || '',
-    text: (s) => s.p['Eigene Oberstufe'] || '' , cls: 'clip' },
-  ...['A', 'B'].flatMap((l) => [
-    { key: `km${l}`, label: `${l} km`, num: true, title: 'Luftlinie', value: (s) => km(s, l), text: (s) => fmtKm(km(s, l)), cls: `num col-${l}` },
-    timeColumn(l, 'bike', `${l} Rad`),
-    timeColumn(l, 'transit', `${l} ÖPNV`),
-  ]),
-  { key: 'max', label: 'max min', num: true, title: 'Längerer der beiden Wege im gewählten Modus',
+  { key: 'max', label: () => `Fahrzeit (${MODE_LABEL[state.mode]})`, num: true,
+    title: () => `Längerer der beiden Wege ab Ort A und Ort B mit ${state.mode === 'bike' ? 'dem Rad' : 'ÖPNV'}, in Minuten. Details beim Darüberfahren.`,
     value: (s) => maxMin(s),
-    text: (s) => fmtMin(maxMin(s), setLabels().every((l) => realMin(s, l) != null)), cls: 'num' },
-  { key: 'next', label: 'Nächster Termin', value: (s) => nextEventFor(s.p.Schule)?.start ?? null,
-    text: (s) => {
+    html: (s) => {
+      const labels = setLabels();
+      if (!labels.length) return '';
+      const mins = labels.map((l) => bestMin(s, l));
+      if (mins.some((m) => m == null)) return `<span class="approx" title="${escapeHtml(labels.map((l) => detailLine(s, l)).join('\n'))}">–</span>`;
+      const v = Math.max(...mins);
+      const side = labels.length > 1 ? labels[mins.indexOf(v)] : '';
+      const real = labels.every((l) => realMin(s, l) != null);
+      const tip = labels.map((l) => detailLine(s, l)).join('\n');
+      return `<span class="time${real ? '' : ' approx'}" title="${escapeHtml(tip)}">${real ? '' : '≈'}${v}</span>${side ? `<span class="side side-${side}" title="längerer Weg ab Ort ${side}">${side}</span>` : ''}`;
+    } },
+  { key: 'next', label: 'Nächster Termin', value: (s) => nextEventFor(s.p.Schule)?.start ?? null, cls: 'clip',
+    html: (s) => {
       const t = nextEventFor(s.p.Schule);
       if (!t) return '';
       const [, m, d] = t.start.slice(0, 10).split('-');
-      return `${d}.${m}. ${t.titel}`;
-    }, cls: 'clip' },
-  { key: 'kosten', label: 'Kosten', value: (s) => s.p.Kosten || '', text: (s) => s.p.Kosten || '', cls: 'clip' },
+      return escapeHtml(`${d}.${m}. ${t.titel}`);
+    } },
 ];
-
-function compare(a, b, col) {
-  const va = col.value(a);
-  const vb = col.value(b);
-  if (va == null && vb == null) return 0;
-  if (va == null) return 1; // leere Werte immer ans Ende
-  if (vb == null) return -1;
-  const r = col.num ? va - vb : String(va).localeCompare(String(vb), 'de');
-  return r * state.table.dir;
-}
 
 function renderTable(visible) {
   const { sort, dir, onlyHits } = state.table;
   const col = COLUMNS.find((c) => c.key === sort) ?? COLUMNS[0];
   const fallback = COLUMNS.find((c) => c.key === (anyArea() ? 'max' : 'name'));
-  const rows = visible
+  // Sortierschlüssel einmal pro Zeile berechnen.
+  const keyed = visible
     .filter((s) => !onlyHits || !anyArea() || s.hit)
-    .sort((a, b) => compare(a, b, col) || compare(a, b, fallback) * state.table.dir || a.p.Schule.localeCompare(b.p.Schule));
+    .map((s) => ({ s, v: col.value(s), f: fallback.value(s) }));
+  const cmp = (va, vb, num) => {
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1; // leere Werte immer ans Ende
+    if (vb == null) return -1;
+    return num ? va - vb : String(va).localeCompare(String(vb), 'de');
+  };
+  keyed.sort((a, b) => cmp(a.v, b.v, col.num) * dir || cmp(a.f, b.f, fallback.num) || a.s.p.Schule.localeCompare(b.s.p.Schule, 'de'));
+  const rows = keyed.map((k) => k.s);
 
   const head = document.createElement('tr');
   for (const c of COLUMNS) {
     const th = document.createElement('th');
-    th.textContent = c.label;
-    th.className = [c.cls?.includes('num') ? 'num' : '', c.key === sort ? (dir > 0 ? 'asc' : 'desc') : ''].join(' ');
-    if (c.title) th.title = c.title;
-    th.onclick = () => {
+    th.scope = 'col';
+    if (c.cls?.includes('num')) th.className = 'num';
+    th.setAttribute('aria-sort', c.key === sort ? (dir > 0 ? 'ascending' : 'descending') : 'none');
+    const btn = Object.assign(document.createElement('button'), { type: 'button', className: 'sort', textContent: typeof c.label === 'function' ? c.label() : c.label });
+    const title = typeof c.title === 'function' ? c.title() : c.title;
+    if (title) btn.title = title;
+    btn.onclick = () => {
       state.table.dir = state.table.sort === c.key ? -state.table.dir : 1;
       state.table.sort = c.key;
       saveJson(TABLE_KEY, state.table);
       renderTable(visible);
+      $('schoolTable').querySelector(`th:nth-child(${COLUMNS.indexOf(c) + 1}) button`)?.focus();
     };
+    th.append(btn);
     head.append(th);
   }
   $('schoolTable').tHead.replaceChildren(head);
 
   const body = $('schoolTable').tBodies[0];
+  if (!rows.length) {
+    const tr = document.createElement('tr');
+    const td = Object.assign(document.createElement('td'), { colSpan: COLUMNS.length, className: 'empty' });
+    td.textContent = onlyHits && anyArea()
+      ? `Keine Schule ist von beiden Orten in ${state.minutes} Minuten erreichbar. Zeit erhöhen oder Verkehrsmittel wechseln.`
+      : 'Keine Schule passt zu den Filtern.';
+    tr.append(td);
+    body.replaceChildren(tr);
+    return;
+  }
   body.replaceChildren(...rows.map((s) => {
     const tr = document.createElement('tr');
     tr.className = anyArea() ? (s.hit ? 'hit' : 'dim') : '';
     for (const c of COLUMNS) {
       const td = document.createElement('td');
       if (c.cls) td.className = c.cls;
-      if (c.html) td.innerHTML = c.html(s);
-      else td.textContent = c.text(s);
+      td.innerHTML = c.html(s);
       if (c.cls?.includes('clip')) td.title = td.textContent;
       tr.append(td);
     }
-    tr.onclick = () => focusSchool(s.p.Schule);
+    tr.onclick = (e) => { if (!e.target.closest('button')) focusSchool(s.p.Schule); };
     return tr;
   }));
 }
+$('schoolTable').addEventListener('click', (e) => {
+  const b = e.target.closest('button.linkish');
+  if (b) focusSchool(b.dataset.school);
+});
 
+// CSV ohne Entfernungen/Fahrzeiten: daraus ließen sich A und B zurückrechnen.
 function exportCsv(hits) {
-  const cols = ['Schule', 'Schulform', 'Kosten', 'Abitur vor Ort', 'Eigene Oberstufe', 'Adresse', 'Tag der offenen Tür'];
-  const header = [...cols, 'Luftlinie A (km)', 'Luftlinie B (km)', 'Modus', 'Minuten'];
+  const cols = ['Schule', 'Schulform', 'Bezirk', 'Kosten', 'Abitur vor Ort', 'Eigene Oberstufe', 'Adresse', 'Tag der offenen Tür', 'Quelle'];
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const lines = hits.map((s) =>
-    [...cols.map((c) => s.p[c]), km(s, 'A')?.toFixed(1), km(s, 'B')?.toFixed(1), state.mode, state.minutes]
-      .map(q).join(','));
-  const blob = new Blob(['﻿' + [header.map(q).join(','), ...lines].join('\n')], { type: 'text/csv' });
+  const lines = hits.map((s) => cols.map((c) => q(s.p[c])).join(','));
+  const blob = new Blob(['﻿' + [cols.map(q).join(','), ...lines].join('\n')], { type: 'text/csv' });
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(blob),
-    download: `schulen_treffer_${state.mode}_${state.minutes}min.csv`,
+    download: `schulen_erreichbar_${state.mode}_${state.minutes}min.csv`,
   });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -495,7 +569,10 @@ function exportCsv(hits) {
 for (const l of ['A', 'B']) {
   $(`set${l}`).onclick = () => {
     state.armed = state.armed === l ? null : l;
-    if (state.armed) toast(`Klick in die Karte setzt ${l}`, l);
+    if (state.armed) {
+      toast(`Klick in die Karte setzt Ort ${l}`, l);
+      search.open(l);
+    }
     renderSchools();
   };
 }
@@ -506,6 +583,7 @@ let sliderTimer;
 $('minutes').addEventListener('input', (e) => {
   state.minutes = Number(e.target.value);
   $('minLabel').textContent = state.minutes;
+  $('minutes').setAttribute('aria-valuetext', `${state.minutes} Minuten`);
   clearTimeout(sliderTimer);
   sliderTimer = setTimeout(update, 150);
 });
@@ -522,23 +600,38 @@ for (const [selector, set] of [
     }));
 }
 
+function setSource(source) {
+  state.source = source;
+  saveJson(SOURCE_KEY, { source });
+  document.querySelectorAll('input[name=source]').forEach((el) => (el.checked = el.value === source));
+}
 document.querySelectorAll('input[name=source]').forEach((el) => {
   el.checked = el.value === state.source;
-  el.addEventListener('change', () => {
-    state.source = el.value;
-    saveJson(SOURCE_KEY, { source: state.source });
-    update();
-  });
+  el.addEventListener('change', () => { setSource(el.value); update(); });
 });
+
+// Technische Fehler in verständliche Sätze übersetzen.
+function friendlyError(err, label) {
+  const msg = String(err?.message ?? err);
+  if (/Haltestelle/.test(msg)) return `Keine Haltestelle im Umkreis von 1,5 km um Ort ${label}. Bitte den Punkt direkt auf die Adresse setzen.`;
+  if (/valhalla/i.test(msg)) return 'Der Fahrrad-Routendienst antwortet gerade nicht. Bitte in ein paar Minuten erneut versuchen – schon berechnete Zeiten bleiben gespeichert.';
+  if (/transport\.rest|bvg/i.test(msg)) return 'Der ÖPNV-Dienst antwortet gerade nicht. Bitte in ein paar Minuten erneut versuchen – schon berechnete Zeiten bleiben gespeichert.';
+  return 'Die Berechnung ist fehlgeschlagen. Bitte später erneut versuchen – schon berechnete Zeiten bleiben gespeichert.';
+}
 
 $('computeTimes').onclick = async () => {
   const labels = setLabels();
   if (!labels.length) return;
   const btn = $('computeTimes');
+  const bar = $('timesProgress');
   btn.disabled = true;
+  bar.hidden = false;
   const status = (t) => ($('timesStatus').textContent = t);
+  let current = labels[0];
+  let lastPct = -1;
   try {
-    for (const l of labels) {
+    for (const [li, l] of labels.entries()) {
+      current = l;
       const key = pointKey(state.points[l]);
       // Nur fehlende Schulen nachrechnen; sind alle da, alles neu berechnen.
       const todo = (mode) => {
@@ -551,18 +644,26 @@ $('computeTimes').onclick = async () => {
         const full = todo(mode).length === schools.length;
         state.times[`${mode}|${key}`] = { ...(full ? {} : prev), ...res, times: { ...(full ? {} : prev?.times), ...res.times } };
       };
-      status(`Fahrrad ab ${l} …`);
+      status(`Radwege ab Ort ${l} …`);
       merge('bike', { times: await bikeTimes(state.points[l], todo('bike')) });
-      merge('transit', await transitTimes(state.points[l], todo('transit'), (i, n) => status(`ÖPNV ab ${l}: ${i}/${n}`)));
+      merge('transit', await transitTimes(state.points[l], todo('transit'), (i, n) => {
+        bar.value = (li + i / n) / labels.length;
+        const pct = Math.floor((i / n) * 10);
+        if (pct !== lastPct) { lastPct = pct; status(`ÖPNV ab Ort ${l}: ${i} von ${n} Schulen …`); }
+      }));
       saveJson(TIMES_KEY, state.times);
+      lastPct = -1;
       renderSchools();
     }
-    status(`Fertig (ÖPNV: Di ${schoolDay().date.split('-').reverse().join('.')}, Ankunft 8:00).`);
+    status(`Fertig. ÖPNV gerechnet für Dienstag, ${schoolDay().date.split('-').reverse().join('.')}, Ankunft bis 8 Uhr.`);
+    if (state.source !== 'real') { setSource('real'); update(); }
   } catch (err) {
     console.error(err);
-    status(`Fehler: ${err.message}. Bereits Berechnetes bleibt erhalten.`);
+    status(friendlyError(err, current));
   } finally {
     btn.disabled = false;
+    bar.hidden = true;
+    bar.value = 0;
     renderTimesInfo();
   }
 };
@@ -572,13 +673,17 @@ function renderTimesInfo() {
   const complete = (l, mode) => timeEntry(l, mode) && schools.every((s) => s.p.Schule in timeEntry(l, mode).times);
   const missing = labels.filter((l) => !complete(l, 'bike') || !complete(l, 'transit'));
   const partial = missing.some((l) => timeEntry(l, 'bike') || timeEntry(l, 'transit'));
-  $('computeTimes').textContent = !missing.length ? 'Fahrzeiten neu berechnen' : partial ? 'Fehlende Fahrzeiten ergänzen' : 'Echte Fahrzeiten berechnen';
-  $('computeTimes').disabled = !labels.length;
-  const stops = labels.map((l) => timeEntry(l, 'transit') && `${l}: ab ${timeEntry(l, 'transit').stop}`).filter(Boolean);
+  const btn = $('computeTimes');
+  if (!btn.disabled || !labels.length) {
+    btn.textContent = !missing.length ? 'Fahrzeiten neu berechnen'
+      : partial ? 'Fehlende Fahrzeiten ergänzen'
+      : 'Genaue Fahrzeiten berechnen (ca. 2 Min.)';
+  }
+  btn.disabled = !labels.length || !$('timesProgress').hidden;
   if (!$('timesStatus').textContent || !missing.length) {
-    $('timesStatus').textContent = missing.length
-      ? (labels.length ? `Für ${missing.join(' & ')} ${partial ? 'unvollständig' : 'noch nicht berechnet'}.` : 'Erst A/B setzen.')
-      : `Echte Zeiten vorhanden. ${stops.join(' · ')}`;
+    $('timesStatus').textContent = !labels.length ? 'Erst Ort A und B setzen.'
+      : missing.length ? `Für Ort ${missing.join(' und ')} ${partial ? 'unvollständig' : 'noch nicht berechnet'} – bis dahin grobe Schätzung (≈).`
+      : 'Genaue Fahrzeiten sind berechnet.';
   }
 }
 
@@ -609,23 +714,21 @@ function savePoints() {
   saveJson(STORAGE_KEY, state.points);
 }
 
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-}
-
 initSplitters(() => map.invalidateSize());
 
 // ---------- Tabs (schmale Ansicht) ----------
 const TAB_KEY = 'schulkarte.tab';
 function showTab(id) {
   document.body.dataset.tab = id;
-  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
+  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tab === id)));
   saveJson(TAB_KEY, { tab: id });
 }
 document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
 showTab(loadJson(TAB_KEY).tab ?? 'sidebar');
 window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => map.invalidateSize(), 50));
+
 initTermine({ focusSchool, hasSchool: (n) => byName.has(n) });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
+if (!state.points.A) search.open('A');
 renderSchools(); // sofort zeigen, Flächen kommen danach
 update();

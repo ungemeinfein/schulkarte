@@ -1,9 +1,11 @@
 // Termine-Spalte: chronologische Liste aus data/termine.json mit .ics-Download.
 import termine from '../data/termine.json';
 import { downloadIcs, parseLocal, schoolNames } from './ics.js';
+import { safeUrl } from './util.js';
 
-const STORAGE_KEY = 'schulkarte.termine';
-const ART_LABEL = { tdot: 'Tag d. o. T.', info: 'Info', schnupper: 'Schnuppern', frist: 'Frist' };
+const STORAGE_KEY = 'schulkarte.termine.v2';
+const ART_LABEL = { tdot: 'Offene Tür', info: 'Infoabend', schnupper: 'Schnuppern', frist: 'Frist' };
+const ARTS = Object.keys(ART_LABEL);
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
@@ -72,41 +74,48 @@ export function render() {
     const names = schoolNames(t);
 
     const li = document.createElement('li');
-    li.className = `ev art-${t.art}${past ? ' past' : ''}${dayKey(t.start) === today ? ' today' : ''}`;
+    const art = ARTS.includes(t.art) ? t.art : 'info';
+    const quelle = safeUrl(t.quelle);
+    li.className = `ev art-${art}${past ? ' past' : ''}${dayKey(t.start) === today ? ' today' : ''}`;
     li.innerHTML = `
       <div class="ev-date">
         <span class="wd">${wd}</span><span class="dm">${String(p.d).padStart(2, '0')}.${String(p.m).padStart(2, '0')}.</span>
+        ${past ? '<span class="past-tag">vorbei</span>' : ''}
       </div>
       <div class="ev-body">
         <div class="ev-school"></div>
-        <div class="ev-title"><span class="art">${ART_LABEL[t.art] ?? t.art}</span> <span class="tt"></span></div>
+        <div class="ev-title"><span class="art">${ART_LABEL[art]}</span> <span class="tt"></span></div>
         <div class="ev-meta">${timeText(t)}</div>
         ${t.hinweis ? '<div class="ev-note"></div>' : ''}
       </div>
       <div class="ev-actions">
-        <button class="ics" title="Termin als .ics herunterladen">.ics</button>
-        ${t.quelle ? `<a class="src" target="_blank" rel="noopener" title="Quelle">↗</a>` : ''}
+        <button type="button" class="ics btn">Kalender</button>
+        ${quelle ? '<a class="src" target="_blank" rel="noopener">Quelle<span class="sr-only"> (neuer Tab)</span> ↗</a>' : ''}
       </div>`;
 
     const schoolEl = li.querySelector('.ev-school');
     names.forEach((n, i) => {
       if (i) schoolEl.append(' · ');
-      const span = document.createElement('span');
-      span.textContent = n;
       if (ctx.hasSchool(n)) {
-        span.className = 'link';
-        span.title = 'Auf der Karte zeigen';
-        span.onclick = () => ctx.focusSchool(n);
+        const b = Object.assign(document.createElement('button'), { type: 'button', className: 'link', textContent: n, title: 'Auf der Karte zeigen' });
+        b.onclick = () => ctx.focusSchool(n);
+        schoolEl.append(b);
+      } else {
+        schoolEl.append(n);
       }
-      schoolEl.append(span);
     });
     li.querySelector('.tt').textContent = t.titel;
     if (t.hinweis) li.querySelector('.ev-note').textContent = t.hinweis;
-    if (t.quelle) li.querySelector('.src').href = t.quelle;
+    if (quelle) li.querySelector('.src').href = quelle;
+    li.querySelector('.ics').setAttribute('aria-label', `${names.join(', ')}: ${t.titel} am ${String(p.d).padStart(2, '0')}.${String(p.m).padStart(2, '0')}. in den Kalender übernehmen (.ics)`);
     li.querySelector('.ics').onclick = () => downloadIcs([t], `${t.start.slice(0, 10)}_${slug(names.join('_'))}.ics`);
     ul.append(li);
   }
 
+  if (!list.length) {
+    const li = Object.assign(document.createElement('li'), { className: 'empty', textContent: 'Keine Termine für diese Auswahl. Filter oben anpassen.' });
+    ul.append(li);
+  }
   $('termCount').textContent = list.length;
   $('termAll').disabled = list.length === 0;
   $('termAll').onclick = () => downloadIcs(list, `schultermine_${today}.ics`);
@@ -126,22 +135,29 @@ export function initTermine(context) {
   render();
 }
 
-// Nächster anstehender Termin einer Schule (für die Tabelle).
-export function nextEventFor(name) {
+// Nächster anstehender Termin je Schule – einmal beim Laden indiziert.
+const nextByName = new Map();
+{
   const today = todayKey();
-  return termine
-    .filter((t) => dayKey(t.ende ?? t.start) >= today && schoolNames(t).includes(name))
-    .sort((a, b) => a.start.localeCompare(b.start))[0] ?? null;
+  for (const t of [...termine].sort((a, b) => a.start.localeCompare(b.start))) {
+    if (dayKey(t.ende ?? t.start) < today) continue;
+    for (const n of schoolNames(t)) if (!nextByName.has(n)) nextByName.set(n, t);
+  }
 }
+export const nextEventFor = (name) => nextByName.get(name) ?? null;
 
 // Wird von main.js aufgerufen, wenn sich die Treffer ändern (null = keine Bereiche gesetzt).
+let lastSig;
 export function setHits(hitNames) {
+  const sig = hitNames ? [...hitNames].sort().join('|') : '∅';
+  if (sig === lastSig) return;
+  lastSig = sig;
   ctx.hitNames = hitNames;
   render();
 }
 
 function loadPrefs() {
-  const base = { arts: {}, onlyHits: false, past: false };
+  const base = { arts: {}, onlyHits: true, past: false };
   try {
     return { ...base, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') };
   } catch {

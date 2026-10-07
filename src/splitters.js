@@ -48,6 +48,29 @@ export function initSplitters(onResize) {
       el.addEventListener('pointercancel', up);
     });
 
+    const [min, max] = LIMITS[name];
+    el.setAttribute('aria-valuemin', min);
+    el.setAttribute('aria-valuemax', max);
+    const current = () => parseFloat(getComputedStyle(document.body).getPropertyValue(name)) || Number(el.dataset.default);
+    const syncAria = () => el.setAttribute('aria-valuenow', Math.round(current()));
+    syncAria();
+
+    // Tastatur: Pfeiltasten verschieben um 20 px (mit Shift 60 px), Home/End = Grenzen.
+    el.addEventListener('keydown', (e) => {
+      const step = e.shiftKey ? 60 : 20;
+      const delta = { ArrowLeft: -step, ArrowUp: -step, ArrowRight: step, ArrowDown: step }[e.key];
+      let next;
+      if (delta != null) next = current() + dir * delta;
+      else if (e.key === 'Home') next = min;
+      else if (e.key === 'End') next = max;
+      else return;
+      e.preventDefault();
+      apply(name, next);
+      syncAria();
+      save(sizes);
+      notify();
+    });
+
     el.addEventListener('dblclick', () => {
       apply(name, Number(el.dataset.default));
       save(sizes);

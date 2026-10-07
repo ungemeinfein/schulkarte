@@ -3,100 +3,119 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
   <title>Schulkarte</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin />
+  <link rel="preload" href="./schulen.geojson" as="fetch" crossorigin />
 </head>
 <body>
-  <aside id="sidebar" class="pane">
+  <h1 class="sr-only">Schulkarte: weiterführende Schulen im Berliner Südosten</h1>
 
+  <aside id="sidebar" class="pane" aria-label="Einstellungen">
     <section class="controls">
-      <h2>Fahrzeiten <button id="privacyToggle" class="info" type="button" aria-expanded="false" aria-controls="privacyNote" title="Was wird gesendet?">i</button></h2>
-      <p id="privacyNote" class="privacy" hidden>Die Adresssuche schickt den Suchtext an Nominatim (OpenStreetMap). Für echte Fahrzeiten werden A/B auf ~100 m gerundet an Valhalla (FOSSGIS) und transport.rest (BVG) gesendet. ÖPNV: Start an der nächsten Haltestelle, Fußweg geschätzt. Punkte und Ergebnisse bleiben nur in diesem Browser.</p>
+      <h2>Fahrzeiten <button id="privacyToggle" class="info" type="button" aria-expanded="false" aria-controls="privacyNote" aria-label="Datenschutz-Hinweis" title="Was wird wohin gesendet?">i</button></h2>
+      <div id="privacyNote" class="privacy" hidden>
+        <p>Ort A und B bleiben nur in diesem Browser gespeichert. Nach außen geht:</p>
+        <ul>
+          <li><strong>Karte:</strong> OpenStreetMap lädt die Kartenkacheln für den sichtbaren Ausschnitt (mit deiner IP-Adresse).</li>
+          <li><strong>Adresssuche:</strong> Der Suchtext, z. B. eine Adresse, geht mit deiner IP-Adresse an Nominatim (OpenStreetMap).</li>
+          <li><strong>Genaue Fahrzeiten:</strong> A und B gehen auf ~100 m gerundet an Valhalla (FOSSGIS) und transport.rest (BVG). Beim ÖPNV startet die Abfrage an der nächsten Haltestelle, der Fußweg wird geschätzt.</li>
+          <li><strong>Fotos:</strong> Beim Öffnen einer Schule lädt das Foto von Wikimedia Commons.</li>
+        </ul>
+      </div>
 
       <div class="points">
-        <button id="setA" class="pt a">A setzen</button>
-        <button id="setB" class="pt b">B setzen</button>
+        <button id="setA" class="pt a" type="button" aria-pressed="false">Ort A setzen</button>
+        <button id="setB" class="pt b" type="button" aria-pressed="false">Ort B setzen</button>
       </div>
-      <p id="hint" class="hint"></p>
+      <p id="hint" class="hint" aria-live="polite"></p>
 
-      <div class="mode" role="radiogroup">
+      <fieldset class="mode">
+        <legend class="sr-only">Verkehrsmittel</legend>
         <label><input type="radio" name="mode" value="bike" /> Fahrrad</label>
         <label><input type="radio" name="mode" value="transit" checked /> ÖPNV</label>
-      </div>
+      </fieldset>
 
-      <label class="slider">
-        <span>Max. <strong id="minLabel">40</strong> min</span>
-        <input id="minutes" type="range" min="10" max="45" step="5" value="40" />
+      <label class="slider" for="minutes">
+        <span>Höchstens <strong id="minLabel">40</strong> Minuten</span>
       </label>
+      <input id="minutes" type="range" min="10" max="45" step="5" value="40" aria-describedby="minLabel" />
 
-      <div class="mode source" role="radiogroup" title="Woher die Flächen auf der Karte kommen">
-        <label><input type="radio" name="source" value="approx" /> Kreise</label>
-        <label><input type="radio" name="source" value="real" /> echtes Routing</label>
-      </div>
+      <fieldset class="mode source">
+        <legend>Bereiche auf der Karte</legend>
+        <label><input type="radio" name="source" value="approx" /> Grob (Luftlinie)</label>
+        <label><input type="radio" name="source" value="real" /> Genau (Straßen &amp; Fahrplan)</label>
+      </fieldset>
       <p id="method" class="method"></p>
 
-      <button id="computeTimes" class="compute">Echte Fahrzeiten berechnen</button>
-      <p id="timesStatus" class="hint"></p>
+      <button id="computeTimes" class="compute" type="button">Genaue Fahrzeiten berechnen</button>
+      <progress id="timesProgress" max="1" value="0" hidden></progress>
+      <p id="timesStatus" class="hint" role="status" aria-live="polite"></p>
     </section>
 
-    <section class="filters" id="formFilter">
-      <h2>Schulform</h2>
+    <fieldset class="filters" id="formFilter">
+      <legend>Schulform</legend>
       <label><input type="checkbox" value="Gymnasium" checked /> Gymnasium</label>
       <label><input type="checkbox" value="ISS" checked /> ISS</label>
       <label><input type="checkbox" value="Gemeinschaftsschule" checked /> Gemeinschaftsschule</label>
       <label><input type="checkbox" value="Freie Schule" checked /> Freie Schule (Waldorf, Montessori …)</label>
-    </section>
+    </fieldset>
 
-    <section class="filters" id="abiFilter">
-      <h2>Abitur an der Schule</h2>
+    <fieldset class="filters" id="abiFilter">
+      <legend>Abitur an der Schule</legend>
       <label><input type="checkbox" value="ja" checked /> ja</label>
       <label><input type="checkbox" value="im Aufbau" checked /> im Aufbau</label>
       <label><input type="checkbox" value="nein" checked /> nein (Wechsel nach Kl. 10)</label>
-    </section>
+    </fieldset>
 
-    <section class="filters" id="costFilter">
-      <h2>Träger</h2>
+    <fieldset class="filters" id="costFilter">
+      <legend>Träger</legend>
       <label><input type="checkbox" value="staatlich" checked /> staatlich (kostenfrei)</label>
       <label><input type="checkbox" value="privat" checked /> privat (Schulgeld)</label>
-    </section>
-
+    </fieldset>
   </aside>
 
-  <div class="splitter v" data-var="--left" data-dir="1" data-default="280" title="Ziehen zum Ändern der Breite · Doppelklick: Standard"></div>
+  <div class="splitter v" data-var="--left" data-dir="1" data-default="280" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Breite der Einstellungen ändern" title="Ziehen oder Pfeiltasten · Doppelklick: Standard"></div>
 
-  <main id="map"></main>
+  <div id="map" role="region" aria-label="Karte mit Schulen. Klick setzt Ort A oder B."></div>
 
   <nav id="tabs" class="tabs" aria-label="Bereiche">
-    <button type="button" data-tab="sidebar">Einstellungen</button>
-    <button type="button" data-tab="tablePane">Schulen</button>
-    <button type="button" data-tab="termine">Termine</button>
+    <button type="button" data-tab="sidebar" aria-controls="sidebar">Einstellungen</button>
+    <button type="button" data-tab="tablePane" aria-controls="tablePane">Schulen</button>
+    <button type="button" data-tab="termine" aria-controls="termine">Termine</button>
   </nav>
 
-  <div class="splitter v" data-var="--right" data-dir="-1" data-default="360" title="Ziehen zum Ändern der Breite · Doppelklick: Standard"></div>
+  <div class="splitter v" data-var="--right" data-dir="-1" data-default="360" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Breite der Termine ändern" title="Ziehen oder Pfeiltasten · Doppelklick: Standard"></div>
 
-  <aside id="termine" class="pane">
+  <aside id="termine" class="pane" aria-labelledby="termHead">
     <div class="pane-head">
-      <h2>Termine <span id="termCount" class="count"></span></h2>
-      <button id="termAll" title="Alle angezeigten Termine als .ics herunterladen">Alle .ics</button>
+      <h2 id="termHead">Termine <span id="termCount" class="count"></span></h2>
+      <button id="termAll" class="btn" type="button" title="Alle angezeigten Termine als Kalenderdatei (.ics) herunterladen">Alle in Kalender</button>
     </div>
     <div id="termFilters" class="term-filters">
-      <label><input type="checkbox" data-art="tdot" /> Tag d. o. T.</label>
-      <label><input type="checkbox" data-art="info" /> Info</label>
-      <label><input type="checkbox" data-art="schnupper" /> Schnuppern</label>
-      <label><input type="checkbox" data-art="frist" /> Fristen</label>
-      <label><input type="checkbox" id="termOnlyHits" /> nur Treffer</label>
-      <label><input type="checkbox" id="termPast" /> vergangene</label>
+      <div class="chips" role="group" aria-label="Art der Termine">
+        <label class="chip art-tdot"><input type="checkbox" data-art="tdot" /> Offene Tür</label>
+        <label class="chip art-info"><input type="checkbox" data-art="info" /> Infoabend</label>
+        <label class="chip art-schnupper"><input type="checkbox" data-art="schnupper" /> Schnuppern</label>
+        <label class="chip art-frist"><input type="checkbox" data-art="frist" /> Fristen</label>
+      </div>
+      <div class="term-toggles">
+        <label><input type="checkbox" id="termOnlyHits" /> nur erreichbare Schulen</label>
+        <label><input type="checkbox" id="termPast" /> vergangene zeigen</label>
+      </div>
     </div>
     <ol id="termList" class="term-list"></ol>
   </aside>
 
-  <div class="splitter h" data-var="--bottom" data-dir="-1" data-default="300" title="Ziehen zum Ändern der Höhe · Doppelklick: Standard"></div>
+  <div class="splitter h" data-var="--bottom" data-dir="-1" data-default="300" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="Höhe der Schultabelle ändern" title="Ziehen oder Pfeiltasten · Doppelklick: Standard"></div>
 
-  <section id="tablePane" class="pane">
+  <main id="tablePane" class="pane" aria-labelledby="tableHead">
     <div class="pane-head">
-      <h2>Schulen <span id="resultTitle" class="count"></span></h2>
+      <h2 id="tableHead">Schulen <span id="resultTitle" class="count" aria-live="polite" aria-atomic="true"></span></h2>
       <div class="table-tools">
-        <label><input type="checkbox" id="tableOnlyHits" /> nur Treffer</label>
-        <button id="export" disabled title="Treffer als CSV herunterladen">CSV</button>
+        <label><input type="checkbox" id="tableOnlyHits" /> nur erreichbare</label>
+        <button id="export" class="btn" type="button" disabled title="Erreichbare Schulen als Tabelle (CSV) herunterladen">CSV</button>
       </div>
     </div>
     <div class="table-wrap">
@@ -104,8 +123,9 @@
         <thead></thead>
         <tbody></tbody>
       </table>
+      <p class="table-legend">Fahrzeit = längerer Weg von Ort A und B (Kreis zeigt, welcher); Details beim Darüberfahren oder in der Schule · ≈ = grob geschätzt (Luftlinie) · Nachfrage = Erstwünsche pro Platz 2026/27; über 100 % heißt: nur als Erstwunsch realistisch · * = Sonderfall, Details in der Schule</p>
     </div>
-  </section>
+  </main>
 
   <script type="module" src="/src/main.js"></script>
 </body>
