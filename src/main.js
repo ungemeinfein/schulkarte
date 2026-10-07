@@ -680,7 +680,7 @@ const ALL_COLUMNS = [
       const cls = d.diff <= 5 ? 'fair' : d.diff <= 15 ? 'mid' : 'unfair';
       const word = { fair: 'ausgeglichen', mid: 'mittel', unfair: 'ungleich' }[cls];
       const tip = `A ${d.a} min · B ${d.b} min – ${d.diff ? `${d.longer} ist ${d.diff} min länger` : 'gleich lang'}${d.real ? '' : ' (grob geschätzt)'}`;
-      return `<span class="delta ${cls}${d.real ? '' : ' approx'}" title="${escapeHtml(tip)}">${d.real ? '' : '≈'}${d.diff}<span class="unit"> min.</span></span>${d.diff ? `<span class="side side-${d.longer}" aria-hidden="true">${d.longer}</span>` : ''}<span class="sr-only"> (${word}${d.diff ? `, länger ab ${d.longer}` : ''})</span>`;
+      return `<span class="delta ${cls}${d.real ? '' : ' approx'}" title="${escapeHtml(tip)}">${d.real ? '' : '≈'}${d.diff}<span class="unit"> min.</span></span><span class="sr-only"> (${word}${d.diff ? `, länger ab ${d.longer}` : ''})</span>`;
     } },
   { key: 'next', label: 'Nächster Termin', value: (s) => nextEventFor(s.p.Schule)?.start ?? null, cls: 'clip',
     html: (s) => {
