@@ -125,6 +125,12 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
   font: italic 600 var(--fs-s)/1 Georgia, serif; cursor: pointer;
 }
 .info:hover, .info[aria-expanded="true"] { border-color: var(--A); color: var(--A); }
+.share-btn { width: 100%; margin-top: 4px; }
+.share-panel { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: var(--fs-s); }
+.share-panel > label { display: flex; align-items: center; gap: 6px; }
+.share-row { display: flex; gap: 6px; margin: 6px 0 2px; }
+.share-row input { flex: 1; min-width: 0; font: var(--fs-s) var(--font); padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--text-2); }
+.share-panel .hint { margin: 4px 0 0; font-size: var(--fs-xs); }
 .filters { display: grid; gap: 0; font-size: var(--fs-m); margin-bottom: 14px; }
 .filters legend { margin-bottom: 4px; }
 
@@ -227,17 +233,6 @@ td .time.approx { font-weight: 400; }
 .leaflet-container { font-family: var(--font); }
 .leaflet-container.placing, .leaflet-container.placing .leaflet-interactive { cursor: crosshair; }
 .leaflet-marker-icon:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
-.map-legend {
-  display: flex; flex-wrap: wrap; gap: 4px 10px; max-width: 260px; padding: 5px 8px; border-radius: 6px;
-  background: rgba(255,255,255,.92); box-shadow: 0 1px 4px rgba(0,0,0,.25); font-size: var(--fs-xs); color: var(--text-2);
-}
-.map-legend span { display: inline-flex; align-items: center; gap: 4px; }
-.lg-area { width: 14px; height: 10px; border: 2px dashed; border-radius: 2px; }
-.lg-A { border-color: var(--A); } .lg-B { border-color: var(--B); }
-.lg-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #14532d; }
-.lg-hit { background: var(--hit); }
-.lg-dim { background: #e2e8f0; border-color: #94a3b8; }
-
 .map-search { background: var(--surface); border-radius: 6px; box-shadow: 0 1px 5px rgba(0,0,0,.3); width: min(300px, 70vw); font: var(--fs-m)/1.3 var(--font); display: flex; flex-wrap: wrap; }
 .map-search.collapsed { width: auto; }
 .map-search.collapsed form, .map-search.collapsed .map-search-results { display: none; }
@@ -351,5 +346,4 @@ td .time.approx { font-weight: 400; }
   .ev { grid-template-columns: 44px 1fr auto; gap: 6px; }
   #schoolTable { font-size: var(--fs-s); }
   #schoolTable td { padding: 6px; }
-  .map-legend { max-width: 180px; }
 }

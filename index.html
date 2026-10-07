@@ -52,6 +52,16 @@
       <button id="computeTimes" class="compute" type="button">Genaue Fahrzeiten berechnen</button>
       <progress id="timesProgress" max="1" value="0" hidden></progress>
       <p id="timesStatus" class="hint" role="status" aria-live="polite"></p>
+
+      <button id="shareBtn" class="btn share-btn" type="button" aria-expanded="false" aria-controls="sharePanel">Auswahl als Link teilen</button>
+      <div id="sharePanel" class="share-panel" hidden>
+        <label><input type="checkbox" id="shareWithPoints" checked /> Orte A und B mitschicken</label>
+        <div class="share-row">
+          <input id="shareUrl" type="text" readonly aria-label="Link zum Teilen" />
+          <button id="shareCopy" class="btn" type="button">Kopieren</button>
+        </div>
+        <p class="hint">Der Link enthält Verkehrsmittel, Zeit, Filter<span id="sharePointsNote"> und die Orte A und B (auf ~10 m genau) – nur an Personen schicken, die die Adressen kennen dürfen</span>.</p>
+      </div>
     </section>
 
     <fieldset class="filters" id="formFilter">

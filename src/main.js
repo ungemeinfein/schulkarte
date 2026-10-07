@@ -96,20 +96,6 @@ const search = addSearchControl(map, (label, lonLat) => {
   pointSet(label, lonLat);
 });
 
-// Legende unten links
-const Legend = L.Control.extend({
-  options: { position: 'bottomleft' },
-  onAdd() {
-    const el = L.DomUtil.create('div', 'map-legend');
-    el.innerHTML = `
-      <span><i class="lg-area lg-A"></i>Bereich A</span>
-      <span><i class="lg-area lg-B"></i>Bereich B</span>
-      <span><i class="lg-dot lg-hit"></i>erreichbar</span>
-      <span><i class="lg-dot lg-dim"></i>nicht erreichbar</span>`;
-    return el;
-  },
-});
-map.addControl(new Legend());
 
 // Kurze Rückmeldung oben auf der Karte.
 const toastEl = Object.assign(document.createElement('div'), { className: 'map-toast', role: 'status' });
@@ -437,6 +423,7 @@ function renderSchools() {
   renderTable(visible);
   renderTimesInfo();
   updatePlacing();
+  if (!$('sharePanel').hidden) refreshShare();
   setHits(anyArea() ? new Set(hits.map((s) => s.p.Schule)) : null);
 }
 
@@ -754,6 +741,102 @@ function savePoints() {
   saveJson(STORAGE_KEY, state.points);
 }
 
+// ---------- Auswahl per Link teilen (im #-Teil: wird nie an einen Server gesendet) ----------
+const FORMS = ['Gymnasium', 'ISS', 'Gemeinschaftsschule', 'Freie Schule'];
+const ABIS = ['ja', 'im Aufbau', 'nein'];
+const COSTS = ['staatlich', 'privat'];
+
+function shareUrl(withPoints) {
+  const q = new URLSearchParams();
+  if (withPoints) {
+    for (const l of ['A', 'B']) {
+      const p = state.points[l];
+      if (p) q.set(l.toLowerCase(), `${p[1].toFixed(4)},${p[0].toFixed(4)}`);
+    }
+  }
+  q.set('m', state.mode);
+  q.set('t', state.minutes);
+  q.set('k', state.source);
+  if (state.forms.size < FORMS.length) q.set('f', [...state.forms].join('|'));
+  if (state.abi.size < ABIS.length) q.set('abi', [...state.abi].join('|'));
+  if (state.cost.size < COSTS.length) q.set('tr', [...state.cost].join('|'));
+  return `${location.origin}${location.pathname}#${q.toString()}`;
+}
+
+// Gibt true zurück, wenn der Link Orte enthielt.
+function applySharedHash() {
+  if (!location.hash.includes('=')) return false;
+  const q = new URLSearchParams(location.hash.slice(1));
+  const pick = (v, allowed) => (v ?? '').split('|').filter((x) => allowed.includes(x));
+  let hadPoints = false;
+  for (const l of ['A', 'B']) {
+    const v = q.get(l.toLowerCase());
+    const m = v?.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
+    if (m) {
+      const lat = Number(m[1]);
+      const lon = Number(m[2]);
+      if (lat > 51 && lat < 54 && lon > 12 && lon < 15) { state.points[l] = [lon, lat]; hadPoints = true; }
+    }
+  }
+  if (['bike', 'transit'].includes(q.get('m'))) state.mode = q.get('m');
+  const t = Number(q.get('t'));
+  if (t >= 10 && t <= 45) state.minutes = Math.round(t / 5) * 5;
+  if (['approx', 'real'].includes(q.get('k'))) state.source = q.get('k');
+  // Sets in place ändern – die Checkbox-Handler halten Referenzen darauf.
+  const replace = (set, values) => { set.clear(); values.forEach((v) => set.add(v)); };
+  if (q.has('f')) replace(state.forms, pick(q.get('f'), FORMS));
+  if (q.has('abi')) replace(state.abi, pick(q.get('abi'), ABIS));
+  if (q.has('tr')) replace(state.cost, pick(q.get('tr'), COSTS));
+  if (hadPoints) savePoints();
+  saveJson(SOURCE_KEY, { source: state.source });
+  // Link nicht in der Adresszeile stehen lassen (sonst wird er versehentlich weitergegeben).
+  history.replaceState(null, '', location.pathname + location.search);
+  return hadPoints;
+}
+
+// Bedienelemente an den Zustand angleichen (nach Laden eines geteilten Links).
+function syncControls() {
+  document.querySelectorAll('input[name=mode]').forEach((el) => (el.checked = el.value === state.mode));
+  document.querySelectorAll('input[name=source]').forEach((el) => (el.checked = el.value === state.source));
+  $('minutes').value = state.minutes;
+  $('minLabel').textContent = state.minutes;
+  $('minutes').setAttribute('aria-valuetext', `${state.minutes} Minuten`);
+  document.querySelectorAll('#formFilter input').forEach((el) => (el.checked = state.forms.has(el.value)));
+  document.querySelectorAll('#abiFilter input').forEach((el) => (el.checked = state.abi.has(el.value)));
+  document.querySelectorAll('#costFilter input').forEach((el) => (el.checked = state.cost.has(el.value)));
+}
+
+function refreshShare() {
+  const withPoints = $('shareWithPoints').checked && setLabels().length > 0;
+  $('shareUrl').value = shareUrl(withPoints);
+  $('sharePointsNote').hidden = !withPoints;
+}
+$('shareBtn').onclick = async () => {
+  const panel = $('sharePanel');
+  panel.hidden = !panel.hidden;
+  $('shareBtn').setAttribute('aria-expanded', String(!panel.hidden));
+  if (!panel.hidden) { refreshShare(); $('shareUrl').select(); }
+};
+$('shareWithPoints').addEventListener('change', refreshShare);
+$('shareCopy').onclick = async () => {
+  refreshShare();
+  try {
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      await navigator.share({ title: 'Schulkarte', url: $('shareUrl').value });
+      return;
+    }
+    await navigator.clipboard.writeText($('shareUrl').value);
+    $('shareCopy').textContent = 'Kopiert ✓';
+  } catch {
+    $('shareUrl').select();
+    $('shareCopy').textContent = 'Markiert – ⌘C/Strg+C';
+  }
+  setTimeout(() => ($('shareCopy').textContent = 'Kopieren'), 2000);
+};
+
+const sharedWithPoints = applySharedHash();
+syncControls();
+
 initSplitters(() => map.invalidateSize());
 
 // ---------- Tabs (schmale Ansicht) ----------
@@ -770,5 +853,19 @@ window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTim
 initTermine({ focusSchool, hasSchool: (n) => byName.has(n), highlight: highlightMarker });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
 if (!state.points.A) search.open('A');
+function announceShared(withPoints) {
+  if (withPoints) map.fitBounds(L.latLngBounds(setLabels().map((l) => [state.points[l][1], state.points[l][0]])).pad(0.6));
+  toast(withPoints ? 'Geteilte Auswahl geladen – für genaue Zeiten „Fahrzeiten berechnen“ klicken' : 'Geteilte Auswahl geladen');
+}
+if (sharedWithPoints || location.hash === '' && performance.getEntriesByType('navigation')[0]?.name.includes('#')) announceShared(sharedWithPoints);
+// Link in einem schon offenen Tab eingefügt: ohne Neuladen übernehmen.
+window.addEventListener('hashchange', () => {
+  if (!location.hash.includes('=')) return;
+  const withPoints = applySharedHash();
+  syncControls();
+  for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
+  announceShared(withPoints);
+  update();
+});
 renderSchools(); // sofort zeigen, Flächen kommen danach
 update();
