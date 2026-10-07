@@ -118,6 +118,13 @@ function updatePlacing() {
 }
 
 // ---------- Schulen ----------
+// Kurzerklärungen der Schulformen (Berliner Regeln) für Hover-Tooltips.
+const FORM_INFO = {
+  Gymnasium: 'Gymnasium: Abitur nach 12 Jahren (Klasse 12). Aufnahme nur mit Förderprognose (Notensumme ≤ 14) oder bestandenem Probeunterricht. Höheres Tempo, 2. Fremdsprache ab Klasse 7.',
+  ISS: 'Integrierte Sekundarschule (ISS): Klassen 7–10 mit allen Abschlüssen (BBR, MSA); Abitur nach 13 Jahren – an der eigenen Oberstufe oder nach Wechsel. Keine Mindestnote für die Aufnahme, leistungsgemischte Klassen (teils Kurse auf zwei Niveaus), Ganztagsschule.',
+  Gemeinschaftsschule: 'Gemeinschaftsschule: wie eine ISS mit allen Abschlüssen und Abitur nach 13 Jahren, oft aber von Klasse 1 an ohne Schulwechsel. Gemeinsames Lernen ohne Aufteilung nach Leistung; teils Lernentwicklungsberichte statt Noten in den unteren Jahrgängen.',
+  'Freie Schule': 'Freie Schule: Privatschule mit eigenem pädagogischem Konzept (z. B. Waldorf, Montessori, demokratische Schule). Schulgeld und eigene Aufnahme; Abschlüsse je nach Schule, teils nur über externe Prüfungen.',
+};
 function formCategory({ Schule, Schulform }) {
   if (/Waldorf|Montessori|Alternativ|Freie Schule|anthroposoph/i.test(`${Schule} ${Schulform}`)) return 'Freie Schule';
   const schulform = Schulform ?? '';
@@ -483,7 +490,7 @@ const ALL_COLUMNS = [
   { key: 'name', label: 'Schule', value: (s) => s.p.Schule, cls: 'name',
     html: (s) => `<button type="button" class="linkish" data-school="${escapeHtml(s.p.Schule)}">${escapeHtml(s.p.Schule)}</button>` },
   { key: 'form', label: 'Form', value: (s) => s.category,
-    html: (s) => `<span class="badge b-${s.category.replace(' ', '-')}">${s.category}</span>` },
+    html: (s) => `<span class="badge b-${s.category.replace(' ', '-')}" title="${escapeHtml(FORM_INFO[s.category] ?? '')}">${s.category}</span>` },
   { key: 'abi', label: 'Abitur', title: 'Abitur an dieser Schule möglich',
     value: (s) => ({ ja: 0, 'im Aufbau': 1, nein: 2 })[s.abi] ?? null,
     html: (s) => `<span class="badge abi-${s.abi.replace(' ', '-')}" title="${escapeHtml(s.p['Eigene Oberstufe'] || '')}">${s.abi}</span>` },
@@ -641,6 +648,11 @@ $('minutes').addEventListener('input', (e) => {
   $('minutes').setAttribute('aria-valuetext', `${state.minutes} Minuten`);
   clearTimeout(sliderTimer);
   sliderTimer = setTimeout(update, 150);
+});
+
+document.querySelectorAll('#formFilter label').forEach((label) => {
+  const info = FORM_INFO[label.querySelector('input').value];
+  if (info) label.title = info;
 });
 
 for (const [selector, set] of [

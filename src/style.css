@@ -165,6 +165,8 @@ td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); 
 .table-legend { font-size: var(--fs-xs); color: var(--muted); margin: 8px 12px 12px; }
 
 .badge { border-radius: 4px; padding: 1px 6px; font-size: var(--fs-xs); background: var(--line); color: var(--text); }
+.badge[title]:not([title='']) { cursor: help; }
+#formFilter label { cursor: help; }
 .b-Gymnasium { background: #dbeafe; }
 .b-ISS { background: #fde68a; }
 .b-Gemeinschaftsschule { background: #fbcfe8; }
