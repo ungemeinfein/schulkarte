@@ -3,7 +3,7 @@ import 'leaflet/dist/leaflet.css';
 import { booleanPointInPolygon, distance, featureCollection, intersect } from '@turf/turf';
 import { reachArea, SPEED_KMH } from './isochrones.js';
 import { bikeRoute, bikeRoutes, bikeTimes, pointKey, schoolDay, transitRoute, transitTimes } from './routing.js';
-import { initTermine, nextEventFor, setHits } from './termine.js';
+import { initTermine, nextEventFor, setFavs, setHits } from './termine.js';
 import { initSplitters } from './splitters.js';
 import { addSearchControl } from './search.js';
 import { escapeHtml, safeUrl } from './util.js';
@@ -14,6 +14,7 @@ const TABLE_KEY = 'schulkarte.table.v2';
 const SOURCE_KEY = 'schulkarte.source';
 const TIMES_KEY = 'schulkarte.times';
 const ROUTES_KEY = 'schulkarte.routes';
+const FAV_KEY = 'schulkarte.favoriten';
 const COLORS = { A: '#2563eb', B: '#be185d', overlap: '#16a34a' };
 const MODE_LABEL = { bike: 'Rad', transit: 'ÖPNV' };
 const SOURCE_LABEL = {
@@ -39,7 +40,8 @@ const state = {
   source: loadJson(SOURCE_KEY).source === 'real' ? 'real' : 'approx',
   routes: loadJson(ROUTES_KEY), // { "transit|lon,lat": { [Schule]: legs } } – Linien für die Hover-Anzeige
   times: loadJson(TIMES_KEY), // { "bike|lon,lat": {times}, "transit|lon,lat": {date, stop, times} }
-  table: { sort: 'max', dir: 1, onlyHits: true, ...loadJson(TABLE_KEY) },
+  table: { sort: 'max', dir: 1, onlyHits: true, onlyFavs: false, ...loadJson(TABLE_KEY) },
+  favs: new Set(loadJson(FAV_KEY).list ?? []), // gemerkte Schulen – nur in diesem Browser, nicht im Link
 };
 
 // ---------- Karte ----------
@@ -237,6 +239,26 @@ function bestMin(school, label, mode = state.mode) {
   return r === undefined ? approxMin(school, label, mode) : r;
 }
 
+// ---------- Merken (lokal, übersteht Neustarts) ----------
+function toggleFav(name) {
+  if (state.favs.has(name)) state.favs.delete(name);
+  else state.favs.add(name);
+  saveJson(FAV_KEY, { list: [...state.favs] });
+  renderSchools();
+  setFavs(state.favs);
+  // offenes Popup aktualisieren
+  for (const btn of document.querySelectorAll(`.popup-fav[data-school="${CSS.escape(name)}"]`)) favButtonState(btn, name);
+}
+function favButtonState(btn, name) {
+  const on = state.favs.has(name);
+  btn.setAttribute('aria-pressed', String(on));
+  btn.textContent = on ? '★ Gemerkt' : '☆ Merken';
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.popup-fav');
+  if (b) toggleFav(b.dataset.school);
+});
+
 // ---------- Popup ----------
 function carouselHtml(name) {
   const list = fotos[name];
@@ -290,7 +312,8 @@ function popupHtml(s) {
   const sites = p['Weitere Standorte']
     ? `<div class="popup-sites" role="note"><strong>Mehrere Standorte.</strong> Karte und Fahrzeiten beziehen sich auf <strong>${escapeHtml(p.Adresse)}</strong>. Weitere: ${escapeHtml(p['Weitere Standorte'])}</div>`
     : '';
-  return `${carouselHtml(p.Schule)}<div class="popup-body"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3>${sites}
+  const fav = state.favs.has(p.Schule);
+  return `${carouselHtml(p.Schule)}<div class="popup-body"><div class="popup-head"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3><button type="button" class="popup-fav btn" data-school="${escapeHtml(p.Schule)}" aria-pressed="${fav}">${fav ? '★ Gemerkt' : '☆ Merken'}</button></div>${sites}
     <table class="popup">
       ${row('Ab Ort A', timeText(s, 'A'))}
       ${row('Ab Ort B', timeText(s, 'B'))}
@@ -567,12 +590,13 @@ function renderSchools() {
   for (const s of schools) {
     if (!visibleSet.has(s)) { schoolLayer.removeLayer(s.marker); continue; }
     const dim = anyArea() && !s.hit;
+    const fav = state.favs.has(s.p.Schule);
     s.base = {
-      color: s.hit ? '#14532d' : dim ? '#94a3b8' : '#334155',
+      color: fav ? '#d97706' : s.hit ? '#14532d' : dim ? '#94a3b8' : '#334155',
       fillColor: s.hit ? COLORS.overlap : dim ? '#e2e8f0' : '#64748b',
       fillOpacity: dim ? 0.7 : 0.95,
-      weight: s.hit ? 3 : 2,
-      radius: s.hit ? 9 : 7,
+      weight: fav ? 4 : s.hit ? 3 : 2,
+      radius: (s.hit ? 9 : 7) + (fav ? 1 : 0),
     };
     s.marker.setStyle(s.base);
     if (!schoolLayer.hasLayer(s.marker)) s.marker.addTo(schoolLayer);
@@ -648,6 +672,12 @@ const ALL_COLUMNS = [
     html: (s) => (anyArea()
       ? `<span class="dot ${s.hit ? 'hit' : 'dim'}" aria-hidden="true"></span><span class="sr-only">${s.hit ? 'erreichbar' : 'nicht erreichbar'}</span>`
       : '') },
+  { key: 'fav', label: '★', title: 'Gemerkte Schulen (nur in diesem Browser gespeichert)', cls: 'favcell',
+    value: (s) => (state.favs.has(s.p.Schule) ? 0 : 1),
+    html: (s) => {
+      const on = state.favs.has(s.p.Schule);
+      return `<button type="button" class="fav" data-school="${escapeHtml(s.p.Schule)}" aria-pressed="${on}" aria-label="${escapeHtml(s.p.Schule)} ${on ? 'nicht mehr merken' : 'merken'}" title="${on ? 'Gemerkt – klicken zum Entfernen' : 'Merken'}">${on ? '★' : '☆'}</button>`;
+    } },
   { key: 'name', label: 'Schule', value: (s) => s.p.Schule, cls: 'name',
     html: (s) => `<button type="button" class="linkish" data-school="${escapeHtml(s.p.Schule)}">${escapeHtml(s.p.Schule)}</button>` },
   { key: 'form', label: 'Form', value: (s) => s.category,
@@ -724,6 +754,7 @@ function renderTable(visible) {
   // Sortierschlüssel einmal pro Zeile berechnen.
   const keyed = visible
     .filter((s) => !onlyHits || !anyArea() || s.hit)
+    .filter((s) => !state.table.onlyFavs || state.favs.has(s.p.Schule))
     .map((s) => ({ s, v: col.value(s), f: fallback.value(s) }));
   const cmp = (va, vb, num) => {
     if (va == null && vb == null) return 0;
@@ -760,7 +791,9 @@ function renderTable(visible) {
   if (!rows.length) {
     const tr = document.createElement('tr');
     const td = Object.assign(document.createElement('td'), { colSpan: COLUMNS.length, className: 'empty' });
-    td.textContent = onlyHits && anyArea()
+    td.textContent = state.table.onlyFavs && !state.favs.size
+      ? 'Noch keine Schule gemerkt. Mit ☆ in der Tabelle oder „Merken“ in der Schulkarte merken.'
+      : onlyHits && anyArea()
       ? `Keine Schule ist von beiden Orten in ${state.minutes} Minuten erreichbar. Zeit erhöhen oder Verkehrsmittel wechseln.`
       : 'Keine Schule passt zu den Filtern.';
     tr.append(td);
@@ -785,6 +818,8 @@ function renderTable(visible) {
   }));
 }
 $('schoolTable').addEventListener('click', (e) => {
+  const f = e.target.closest('button.fav');
+  if (f) { toggleFav(f.dataset.school); return; }
   const b = e.target.closest('button.linkish');
   if (b) focusSchool(b.dataset.school);
 });
@@ -959,6 +994,13 @@ $('privacyToggle').onclick = () => {
   $('privacyToggle').setAttribute('aria-expanded', String(!note.hidden));
 };
 
+$('tableOnlyFavs').checked = state.table.onlyFavs;
+$('tableOnlyFavs').addEventListener('change', (e) => {
+  state.table.onlyFavs = e.target.checked;
+  saveJson(TABLE_KEY, state.table);
+  renderSchools();
+});
+
 $('tableOnlyHits').checked = state.table.onlyHits;
 $('tableOnlyHits').addEventListener('change', (e) => {
   state.table.onlyHits = e.target.checked;
@@ -1087,7 +1129,7 @@ document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => show
 showTab(loadJson(TAB_KEY).tab ?? 'sidebar');
 window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => map.invalidateSize(), 50));
 
-initTermine({ focusSchool, hasSchool: (n) => byName.has(n), highlight: highlightMarker });
+initTermine({ focusSchool, hasSchool: (n) => byName.has(n), highlight: highlightMarker, favs: state.favs });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
 if (!state.points.A) search.open('A');
 function announceShared(withPoints) {

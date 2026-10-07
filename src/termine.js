@@ -12,7 +12,7 @@ const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'A
 const $ = (id) => document.getElementById(id);
 
 const prefs = loadPrefs();
-let ctx = { hitNames: null, focusSchool: () => false, hasSchool: () => false, highlight: () => {} };
+let ctx = { hitNames: null, focusSchool: () => false, hasSchool: () => false, highlight: () => {}, favs: new Set() };
 
 function dayKey(s) {
   return s.slice(0, 10);
@@ -32,6 +32,7 @@ function filtered() {
       if (!prefs.onlyHits || !ctx.hitNames) return true;
       return t.schule === 'Allgemein' || schoolNames(t).some((n) => ctx.hitNames.has(n));
     })
+    .filter((t) => !prefs.onlyFavs || t.schule === 'Allgemein' || schoolNames(t).some((n) => ctx.favs.has(n)))
     .sort((a, b) => a.start.localeCompare(b.start));
 }
 
@@ -131,7 +132,7 @@ export function initTermine(context) {
     el.checked = prefs.arts[el.dataset.art] !== false;
     el.addEventListener('change', () => { prefs.arts[el.dataset.art] = el.checked; savePrefs(); render(); });
   });
-  for (const [id, key] of [['termOnlyHits', 'onlyHits'], ['termPast', 'past']]) {
+  for (const [id, key] of [['termOnlyHits', 'onlyHits'], ['termOnlyFavs', 'onlyFavs'], ['termPast', 'past']]) {
     $(id).checked = prefs[key];
     $(id).addEventListener('change', (e) => { prefs[key] = e.target.checked; savePrefs(); render(); });
   }
@@ -149,6 +150,12 @@ const nextByName = new Map();
 }
 export const nextEventFor = (name) => nextByName.get(name) ?? null;
 
+// Gemerkte Schulen haben sich geändert.
+export function setFavs(favs) {
+  ctx.favs = favs;
+  if (prefs.onlyFavs) render();
+}
+
 // Wird von main.js aufgerufen, wenn sich die Treffer ändern (null = keine Bereiche gesetzt).
 let lastSig;
 export function setHits(hitNames) {
@@ -160,7 +167,7 @@ export function setHits(hitNames) {
 }
 
 function loadPrefs() {
-  const base = { arts: {}, onlyHits: true, past: false };
+  const base = { arts: {}, onlyHits: true, onlyFavs: false, past: false };
   try {
     return { ...base, ...JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') };
   } catch {

@@ -155,6 +155,16 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
 #schoolTable tbody tr.hl { background: #dbeafe; box-shadow: inset 3px 0 0 var(--A); }
 #schoolTable tbody tr.sel { background: #dbeafe; box-shadow: inset 4px 0 0 var(--text); }
 #schoolTable tbody tr.sel td { color: var(--text); }
+.favcell { width: 1%; padding-left: 4px !important; padding-right: 0 !important; }
+button.fav { all: unset; cursor: pointer; font-size: 17px; line-height: 1; color: #9ca3af; padding: 2px 4px; border-radius: 4px; }
+button.fav[aria-pressed="true"] { color: #d97706; }
+button.fav:hover { color: #d97706; background: var(--warn-bg); }
+button.fav:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.popup-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-right: 24px; }
+.carousel + .popup-body .popup-head { margin-right: 0; }
+.popup-head .popup-title { margin: 0 0 6px; }
+.popup-fav { flex: none; padding: 3px 8px; min-height: 26px; }
+.popup-fav[aria-pressed="true"] { color: #b45309; border-color: #d97706; background: var(--warn-bg); }
 .linkish { all: unset; cursor: pointer; font-weight: 600; }
 .linkish:hover { text-decoration: underline; }
 .linkish:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
