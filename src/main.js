@@ -61,6 +61,11 @@ map.createPane('routes').style.zIndex = 380;
 const labelPane = map.createPane('routeLabels');
 labelPane.style.zIndex = 450;
 labelPane.style.pointerEvents = 'none';
+// Kleiner Stern in der Mitte gemerkter Schulen (über den Markern, klick-durchlässig).
+const favPane = map.createPane('favStars');
+favPane.style.zIndex = 420;
+favPane.style.pointerEvents = 'none';
+const favLayer = L.layerGroup().addTo(map);
 const areaLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const schoolLayer = L.layerGroup().addTo(map);
@@ -590,17 +595,25 @@ function renderSchools() {
   for (const s of schools) {
     if (!visibleSet.has(s)) { schoolLayer.removeLayer(s.marker); continue; }
     const dim = anyArea() && !s.hit;
-    const fav = state.favs.has(s.p.Schule);
     s.base = {
-      color: fav ? '#d97706' : s.hit ? '#14532d' : dim ? '#94a3b8' : '#334155',
+      color: s.hit ? '#14532d' : dim ? '#94a3b8' : '#334155',
       fillColor: s.hit ? COLORS.overlap : dim ? '#e2e8f0' : '#64748b',
       fillOpacity: dim ? 0.7 : 0.95,
-      weight: fav ? 4 : s.hit ? 3 : 2,
-      radius: (s.hit ? 9 : 7) + (fav ? 1 : 0),
+      weight: s.hit ? 3 : 2,
+      radius: s.hit ? 9 : 7,
     };
     s.marker.setStyle(s.base);
     if (!schoolLayer.hasLayer(s.marker)) s.marker.addTo(schoolLayer);
     if (s.hit) s.marker.bringToFront();
+  }
+
+  favLayer.clearLayers();
+  for (const s of visible) {
+    if (!state.favs.has(s.p.Schule)) continue;
+    L.marker(s.marker.getLatLng(), {
+      pane: 'favStars', interactive: false, keyboard: false,
+      icon: L.divIcon({ className: 'fav-star', html: '★', iconSize: [14, 14], iconAnchor: [7, 7] }),
+    }).addTo(favLayer);
   }
 
   const both = state.areas.A && state.areas.B;

@@ -319,6 +319,7 @@ td .delta.approx { font-weight: 400; font-style: italic; }
 }
 .route-label-A { color: var(--A); border-color: var(--A); }
 .route-label-B { color: var(--B); border-color: var(--B); }
+.fav-star { color: #fde047; font-size: 12px; line-height: 14px; text-align: center; text-shadow: 0 0 2px rgba(0,0,0,.7); pointer-events: none; }
 .pin { border-radius: 50%; color: #fff; font-weight: 700; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .pin-A { background: var(--A); } .pin-B { background: var(--B); }
 
