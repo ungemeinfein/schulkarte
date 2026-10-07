@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schulkarte</title>
+</head>
+<body>
+  <aside id="sidebar" class="pane">
+
+    <section class="controls">
+      <h2>Fahrzeiten <button id="privacyToggle" class="info" type="button" aria-expanded="false" aria-controls="privacyNote" title="Was wird gesendet?">i</button></h2>
+      <p id="privacyNote" class="privacy" hidden>Für echte Fahrzeiten werden A/B auf ~100 m gerundet an Valhalla (FOSSGIS) und transport.rest (BVG) gesendet. ÖPNV: Start an der nächsten Haltestelle, Fußweg geschätzt. Punkte und Ergebnisse bleiben nur in diesem Browser.</p>
+
+      <div class="points">
+        <button id="setA" class="pt a">A setzen</button>
+        <button id="setB" class="pt b">B setzen</button>
+      </div>
+      <p id="hint" class="hint"></p>
+
+      <div class="mode" role="radiogroup">
+        <label><input type="radio" name="mode" value="bike" checked /> Fahrrad</label>
+        <label><input type="radio" name="mode" value="transit" /> ÖPNV</label>
+      </div>
+
+      <label class="slider">
+        <span>Max. <strong id="minLabel">25</strong> min</span>
+        <input id="minutes" type="range" min="10" max="45" step="5" value="25" />
+      </label>
+
+      <div class="mode source" role="radiogroup" title="Woher die Flächen auf der Karte kommen">
+        <label><input type="radio" name="source" value="approx" /> Kreise</label>
+        <label><input type="radio" name="source" value="real" /> echtes Routing</label>
+      </div>
+      <p id="method" class="method"></p>
+
+      <button id="computeTimes" class="compute">Echte Fahrzeiten berechnen</button>
+      <p id="timesStatus" class="hint"></p>
+    </section>
+
+    <section class="filters" id="formFilter">
+      <h2>Schulform</h2>
+      <label><input type="checkbox" value="Gymnasium" checked /> Gymnasium</label>
+      <label><input type="checkbox" value="ISS" checked /> ISS</label>
+      <label><input type="checkbox" value="Gemeinschaftsschule" checked /> Gemeinschaftsschule</label>
+      <label><input type="checkbox" value="Freie Schule" checked /> Freie Schule (Waldorf, Montessori …)</label>
+    </section>
+
+    <section class="filters" id="abiFilter">
+      <h2>Abitur an der Schule</h2>
+      <label><input type="checkbox" value="ja" checked /> ja</label>
+      <label><input type="checkbox" value="im Aufbau" checked /> im Aufbau</label>
+      <label><input type="checkbox" value="nein" checked /> nein (Wechsel nach Kl. 10)</label>
+    </section>
+
+    <section class="filters" id="costFilter">
+      <h2>Träger</h2>
+      <label><input type="checkbox" value="staatlich" checked /> staatlich (kostenfrei)</label>
+      <label><input type="checkbox" value="privat" checked /> privat (Schulgeld)</label>
+    </section>
+
+    <section class="summary">
+      <h2 id="resultTitle">Schulen</h2>
+      <p class="legend">
+        <span class="dot hit"></span> in der Überlappung
+        <span class="dot dim"></span> außerhalb
+      </p>
+      <p id="hitRule" class="hint"></p>
+    </section>
+  </aside>
+
+  <div class="splitter v" data-var="--left" data-dir="1" data-default="280" title="Ziehen zum Ändern der Breite · Doppelklick: Standard"></div>
+
+  <main id="map"></main>
+
+  <div class="splitter v" data-var="--right" data-dir="-1" data-default="360" title="Ziehen zum Ändern der Breite · Doppelklick: Standard"></div>
+
+  <aside id="termine" class="pane">
+    <div class="pane-head">
+      <h2>Termine <span id="termCount" class="count"></span></h2>
+      <button id="termAll" title="Alle angezeigten Termine als .ics herunterladen">Alle .ics</button>
+    </div>
+    <div id="termFilters" class="term-filters">
+      <label><input type="checkbox" data-art="tdot" /> Tag d. o. T.</label>
+      <label><input type="checkbox" data-art="info" /> Info</label>
+      <label><input type="checkbox" data-art="schnupper" /> Schnuppern</label>
+      <label><input type="checkbox" data-art="frist" /> Fristen</label>
+      <label><input type="checkbox" id="termOnlyHits" /> nur Treffer</label>
+      <label><input type="checkbox" id="termPast" /> vergangene</label>
+    </div>
+    <ol id="termList" class="term-list"></ol>
+  </aside>
+
+  <div class="splitter h" data-var="--bottom" data-dir="-1" data-default="300" title="Ziehen zum Ändern der Höhe · Doppelklick: Standard"></div>
+
+  <section id="tablePane" class="pane">
+    <div class="pane-head">
+      <h2>Schulen <span id="tableCount" class="count"></span></h2>
+      <div class="table-tools">
+        <label><input type="checkbox" id="tableOnlyHits" /> nur Treffer</label>
+        <button id="export" disabled title="Treffer als CSV herunterladen">CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="schoolTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

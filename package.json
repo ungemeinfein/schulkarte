@@ -1,0 +1,19 @@
+{
+  "name": "schulkarte",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "geocode": "node scripts/geocode.mjs"
+  },
+  "dependencies": {
+    "@turf/turf": "^7.1.0",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "papaparse": "^5.4.1",
+    "vite": "^5.4.0"
+  }
+}

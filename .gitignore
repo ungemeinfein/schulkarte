@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.*
+.claude/
+# Recherche-Notizen enthalten persönliche Angaben – nicht veröffentlichen
+research/
+.DS_Store
