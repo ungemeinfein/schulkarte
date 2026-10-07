@@ -61,7 +61,7 @@ map.createPane('routes').style.zIndex = 380;
 const labelPane = map.createPane('routeLabels');
 labelPane.style.zIndex = 450;
 labelPane.style.pointerEvents = 'none';
-// Kleiner Stern in der Mitte gemerkter Schulen (über den Markern, klick-durchlässig).
+// Kleiner Punkt in der Mitte gemerkter Schulen (über den Markern, klick-durchlässig).
 const favPane = map.createPane('favStars');
 favPane.style.zIndex = 420;
 favPane.style.pointerEvents = 'none';
@@ -612,7 +612,7 @@ function renderSchools() {
     if (!state.favs.has(s.p.Schule)) continue;
     L.marker(s.marker.getLatLng(), {
       pane: 'favStars', interactive: false, keyboard: false,
-      icon: L.divIcon({ className: 'fav-star', html: '★', iconSize: [14, 14], iconAnchor: [7, 7] }),
+      icon: L.divIcon({ className: 'fav-dot', html: '', iconSize: [7, 7], iconAnchor: [3.5, 3.5] }),
     }).addTo(favLayer);
   }
 
