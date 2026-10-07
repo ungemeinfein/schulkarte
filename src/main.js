@@ -65,19 +65,46 @@ function placePoint(label, lonLat) {
         const { lat, lng } = e.target.getLatLng();
         state.points[label] = [lng, lat];
         savePoints();
+        toast(`Ort ${label} verschoben`, label);
         update();
       });
   }
   savePoints();
 }
 
+const nextLabel = () => state.armed ?? (!state.points.A ? 'A' : !state.points.B ? 'B' : null);
+
 map.on('click', (e) => {
-  const label = state.armed ?? (!state.points.A ? 'A' : !state.points.B ? 'B' : null);
+  const label = nextLabel();
   if (!label) return;
+  const moved = Boolean(state.points[label]);
   placePoint(label, [e.latlng.lng, e.latlng.lat]);
   state.armed = null;
+  const next = nextLabel();
+  toast(`Ort ${label} ${moved ? 'neu ' : ''}gesetzt${next ? ` – jetzt ${next} setzen` : ''}`, label);
   update();
 });
+
+// Kurze Rückmeldung oben auf der Karte.
+const toastEl = Object.assign(document.createElement('div'), { className: 'map-toast', role: 'status' });
+toastEl.setAttribute('aria-live', 'polite');
+map.getContainer().append(toastEl);
+let toastTimer;
+function toast(text, label) {
+  toastEl.textContent = text;
+  toastEl.dataset.label = label ?? '';
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+// Fadenkreuz, solange ein Klick in die Karte einen Punkt setzt.
+function updatePlacing() {
+  const label = nextLabel();
+  map.getContainer().classList.toggle('placing', Boolean(label));
+  map.getContainer().dataset.placing = label ?? '';
+  for (const l of ['A', 'B']) $(`set${l}`).setAttribute('aria-pressed', String(state.armed === l));
+}
 
 // ---------- Schulen ----------
 function formCategory({ Schule, Schulform }) {
@@ -258,6 +285,7 @@ function renderSchools() {
 
   renderTable(visible);
   renderTimesInfo();
+  updatePlacing();
   $('hitRule').textContent = hasRealTimes()
     ? `Treffer = echte ${state.mode === 'bike' ? 'Rad' : 'ÖPNV'}-Fahrzeit ≤ ${state.minutes} min von ${setLabels().join(' und ')}.`
     : 'Treffer = Schule liegt in der Fläche.';
@@ -417,6 +445,7 @@ function exportCsv(hits) {
 for (const l of ['A', 'B']) {
   $(`set${l}`).onclick = () => {
     state.armed = state.armed === l ? null : l;
+    if (state.armed) toast(`Klick in die Karte setzt ${l}`, l);
     renderSchools();
   };
 }
@@ -535,6 +564,17 @@ function escapeHtml(s) {
 }
 
 initSplitters(() => map.invalidateSize());
+
+// ---------- Tabs (schmale Ansicht) ----------
+const TAB_KEY = 'schulkarte.tab';
+function showTab(id) {
+  document.body.dataset.tab = id;
+  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === id)));
+  saveJson(TAB_KEY, { tab: id });
+}
+document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+showTab(loadJson(TAB_KEY).tab ?? 'sidebar');
+window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => map.invalidateSize(), 50));
 initTermine({ focusSchool, hasSchool: (n) => byName.has(n) });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
 update();
