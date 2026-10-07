@@ -141,7 +141,7 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`
   const p = f.properties;
   const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), lonLat: f.geometry.coordinates, hit: false };
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
-    .bindPopup(() => popupHtml(school), { maxWidth: 380, minWidth: 260, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] })
+    .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] })
     .bindTooltip(p.Schule, { direction: 'top', offset: [0, -6] });
   return school;
 });
@@ -224,14 +224,14 @@ map.on('popupopen', (e) => {
 
 function popupHtml({ p }) {
   const row = (k, v) => (v ? `<tr><th>${k}</th><td>${escapeHtml(v)}</td></tr>` : '');
-  return `${carouselHtml(p.Schule)}<strong>${escapeHtml(p.Schule)}</strong>
+  return `${carouselHtml(p.Schule)}<div class="popup-body"><strong>${escapeHtml(p.Schule)}</strong>
     <table class="popup">
       ${row('Schulform', p.Schulform)}
       ${row('Adresse', p.Adresse)}
       ${row('Oberstufe', p['Eigene Oberstufe'])}
       ${row('Termine', p['Tag der offenen Tür'])}
       ${row('Notizen', p.Notizen)}
-    </table>`;
+    </table></div>`;
 }
 
 function focusSchool(name) {
