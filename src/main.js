@@ -593,6 +593,15 @@ function pupils(s) {
   return s.p['Schülerzahl'] && Number.isFinite(n) ? n : null;
 }
 
+// Fairness: Unterschied der beiden Fahrzeiten im gewählten Modus (nur wenn A und B gesetzt sind).
+function delta(s) {
+  if (!(state.points.A && state.points.B)) return null;
+  const a = bestMin(s, 'A');
+  const b = bestMin(s, 'B');
+  if (a == null || b == null) return null;
+  return { a, b, diff: Math.abs(a - b), longer: a > b ? 'A' : 'B', real: realMin(s, 'A') != null && realMin(s, 'B') != null };
+}
+
 function maxMin(s) {
   const mins = setLabels().map((l) => bestMin(s, l));
   return !mins.length || mins.some((m) => m == null) ? null : Math.max(...mins);
@@ -661,6 +670,17 @@ const ALL_COLUMNS = [
       const real = labels.every((l) => realMin(s, l) != null);
       const tip = labels.map((l) => detailLine(s, l)).join('\n');
       return `<span class="time${real ? '' : ' approx'}" title="${escapeHtml(tip)}">${real ? '' : '≈'}${v}<span class="unit"> min.</span></span>${side ? `<span class="side side-${side}" title="längerer Weg ab Ort ${side}">${side}</span>` : ''}`;
+    } },
+  { key: 'delta', label: 'Unterschied', num: true, hideIfEmpty: true,
+    title: () => `Wie viele Minuten die Wege von Ort A und Ort B auseinanderliegen (${MODE_LABEL[state.mode]}). Klein = fair verteilt.`,
+    value: (s) => delta(s)?.diff ?? null,
+    html: (s) => {
+      const d = delta(s);
+      if (!d) return '';
+      const cls = d.diff <= 5 ? 'fair' : d.diff <= 15 ? 'mid' : 'unfair';
+      const word = { fair: 'ausgeglichen', mid: 'mittel', unfair: 'ungleich' }[cls];
+      const tip = `A ${d.a} min · B ${d.b} min – ${d.diff ? `${d.longer} ist ${d.diff} min länger` : 'gleich lang'}${d.real ? '' : ' (grob geschätzt)'}`;
+      return `<span class="delta ${cls}${d.real ? '' : ' approx'}" title="${escapeHtml(tip)}">${d.real ? '' : '≈'}${d.diff}<span class="unit"> min.</span></span>${d.diff ? `<span class="side side-${d.longer}" aria-hidden="true">${d.longer}</span>` : ''}<span class="sr-only"> (${word}${d.diff ? `, länger ab ${d.longer}` : ''})</span>`;
     } },
   { key: 'next', label: 'Nächster Termin', value: (s) => nextEventFor(s.p.Schule)?.start ?? null, cls: 'clip',
     html: (s) => {

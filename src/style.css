@@ -162,6 +162,12 @@ td .approx { color: var(--muted); font-style: italic; }
 td .time { font-weight: 600; cursor: help; }
 td .time.approx { font-weight: 400; }
 td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); }
+td .delta { display: inline-block; padding: 0 6px; border-radius: 4px; font-weight: 600; cursor: help; }
+td .delta .unit { font-weight: 400; font-size: var(--fs-s); }
+td .delta.fair { background: var(--ok-bg); color: var(--ok-fg); }
+td .delta.mid { background: var(--bg-soft); color: var(--text-2); }
+td .delta.unfair { background: var(--warn-bg); color: var(--warn-fg); }
+td .delta.approx { font-weight: 400; font-style: italic; }
 .side { display: inline-block; margin-left: 4px; width: 15px; height: 15px; border-radius: 50%; color: #fff; font-size: 10px; line-height: 15px; text-align: center; font-weight: 700; vertical-align: 1px; }
 .side-A { background: var(--A); } .side-B { background: var(--B); }
 .table-legend { font-size: var(--fs-xs); color: var(--muted); margin: 8px 12px 12px; }
