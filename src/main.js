@@ -172,9 +172,19 @@ function timeEntry(label, mode) {
   const k = `${label}|${mode}`;
   if (!entryCache.has(k)) {
     const pt = state.points[label];
-    entryCache.set(k, pt ? state.times[`${mode}|${pointKey(pt)}`] : undefined);
+    entryCache.set(k, pt ? state.times[`${mode}|${pointKey(pt)}`] ?? nearbyEntry(pt, mode) : undefined);
   }
   return entryCache.get(k);
+}
+// Toleranz für Rundungsgrenzen (z. B. Punkt aus einem Link mit 4 statt voller Nachkommastellen).
+function nearbyEntry(pt, mode) {
+  for (const [key, entry] of Object.entries(state.times)) {
+    const [m, coords] = key.split('|');
+    if (m !== mode) continue;
+    const [lon, lat] = coords.split(',').map(Number);
+    if (Math.abs(lon - pt[0]) <= 0.0011 && Math.abs(lat - pt[1]) <= 0.0011) return entry;
+  }
+  return undefined;
 }
 function realInfo(school, label, mode) {
   const e = timeEntry(label, mode);
@@ -780,20 +790,19 @@ function applySharedHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   const pick = (v, allowed) => (v ?? '').split('|').filter((x) => allowed.includes(x));
   let hadPoints = false;
-  const before = JSON.stringify(state.points);
+  // Orte aus dem Link nur übernehmen, wenn sie mehr als ~10 m von den gespeicherten abweichen –
+  // sonst bleiben die genaueren gespeicherten Koordinaten (und damit die berechneten Zeiten) erhalten.
+  const near = (p, o) => p && o && Math.abs(p[0] - o[0]) < 2e-4 && Math.abs(p[1] - o[1]) < 2e-4;
   for (const l of ['A', 'B']) {
     const v = q.get(l.toLowerCase());
     const m = v?.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
-    if (m) {
-      const lat = Number(m[1]);
-      const lon = Number(m[2]);
-      if (lat > 51 && lat < 54 && lon > 12 && lon < 15) state.points[l] = [lon, lat];
+    if (!m) continue;
+    const pt = [Number(m[2]), Number(m[1])];
+    if (pt[1] > 51 && pt[1] < 54 && pt[0] > 12 && pt[0] < 15 && !near(pt, state.points[l])) {
+      state.points[l] = pt;
+      hadPoints = true;
     }
   }
-  // Nur „neue Orte“, wenn sie sich von den gespeicherten unterscheiden (> ~10 m).
-  const near = (p, q) => p && q && Math.abs(p[0] - q[0]) < 2e-4 && Math.abs(p[1] - q[1]) < 2e-4;
-  const old = JSON.parse(before);
-  hadPoints = ['A', 'B'].some((l) => state.points[l] && !near(state.points[l], old[l]));
   if (['bike', 'transit'].includes(q.get('m'))) state.mode = q.get('m');
   const t = Number(q.get('t'));
   if (t >= 10 && t <= 45) state.minutes = Math.round(t / 5) * 5;
