@@ -16,7 +16,7 @@
     <section class="controls">
       <h2>Fahrzeiten <button id="privacyToggle" class="info" type="button" aria-expanded="false" aria-controls="privacyNote" aria-label="Datenschutz-Hinweis" title="Was wird wohin gesendet?">i</button></h2>
       <div id="privacyNote" class="privacy" hidden>
-        <p>Ort A und B bleiben nur in diesem Browser gespeichert. Nach außen geht:</p>
+        <p>Ort A und B werden in diesem Browser gespeichert und stehen zusammen mit Zeit und Filtern in der Adresszeile (hinter dem #, wird nicht an den Server gesendet). Wer den Link bekommt, sieht also auch die Orte. Nach außen geht:</p>
         <ul>
           <li><strong>Karte:</strong> OpenStreetMap lädt die Kartenkacheln für den sichtbaren Ausschnitt (mit deiner IP-Adresse).</li>
           <li><strong>Adresssuche:</strong> Der Suchtext geht schon beim Tippen (ab 3 Zeichen) mit deiner IP-Adresse an Photon (komoot, OpenStreetMap-Daten).</li>
@@ -53,15 +53,6 @@
       <progress id="timesProgress" max="1" value="0" hidden></progress>
       <p id="timesStatus" class="hint" role="status" aria-live="polite"></p>
 
-      <button id="shareBtn" class="btn share-btn" type="button" aria-expanded="false" aria-controls="sharePanel">Auswahl als Link teilen</button>
-      <div id="sharePanel" class="share-panel" hidden>
-        <label><input type="checkbox" id="shareWithPoints" checked /> Orte A und B mitschicken</label>
-        <div class="share-row">
-          <input id="shareUrl" type="text" readonly aria-label="Link zum Teilen" />
-          <button id="shareCopy" class="btn" type="button">Kopieren</button>
-        </div>
-        <p class="hint">Der Link enthält Verkehrsmittel, Zeit, Filter<span id="sharePointsNote"> und die Orte A und B (auf ~10 m genau) – nur an Personen schicken, die die Adressen kennen dürfen</span>.</p>
-      </div>
     </section>
 
     <fieldset class="filters" id="formFilter">

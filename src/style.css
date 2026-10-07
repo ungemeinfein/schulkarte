@@ -125,12 +125,6 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
   font: italic 600 var(--fs-s)/1 Georgia, serif; cursor: pointer;
 }
 .info:hover, .info[aria-expanded="true"] { border-color: var(--A); color: var(--A); }
-.share-btn { width: 100%; margin-top: 4px; }
-.share-panel { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: var(--fs-s); }
-.share-panel > label { display: flex; align-items: center; gap: 6px; }
-.share-row { display: flex; gap: 6px; margin: 6px 0 2px; }
-.share-row input { flex: 1; min-width: 0; font: var(--fs-s) var(--font); padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--text-2); }
-.share-panel .hint { margin: 4px 0 0; font-size: var(--fs-xs); }
 .filters { display: grid; gap: 0; font-size: var(--fs-m); margin-bottom: 14px; }
 .filters legend { margin-bottom: 4px; }
 

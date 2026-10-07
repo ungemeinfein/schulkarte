@@ -423,7 +423,7 @@ function renderSchools() {
   renderTable(visible);
   renderTimesInfo();
   updatePlacing();
-  if (!$('sharePanel').hidden) refreshShare();
+  syncUrl();
   setHits(anyArea() ? new Set(hits.map((s) => s.p.Schule)) : null);
 }
 
@@ -746,6 +746,12 @@ const FORMS = ['Gymnasium', 'ISS', 'Gemeinschaftsschule', 'Freie Schule'];
 const ABIS = ['ja', 'im Aufbau', 'nein'];
 const COSTS = ['staatlich', 'privat'];
 
+// Adresszeile immer mit der aktuellen Auswahl aktualisieren (ohne neuen Verlaufseintrag).
+function syncUrl() {
+  const url = shareUrl(true);
+  if (url !== location.href) history.replaceState(null, '', url);
+}
+
 function shareUrl(withPoints) {
   const q = new URLSearchParams();
   if (withPoints) {
@@ -760,7 +766,8 @@ function shareUrl(withPoints) {
   if (state.forms.size < FORMS.length) q.set('f', [...state.forms].join('|'));
   if (state.abi.size < ABIS.length) q.set('abi', [...state.abi].join('|'));
   if (state.cost.size < COSTS.length) q.set('tr', [...state.cost].join('|'));
-  return `${location.origin}${location.pathname}#${q.toString()}`;
+  const hash = q.toString().replace(/%2C/g, ',').replace(/%7C/g, '|');
+  return `${location.origin}${location.pathname}${location.search}#${hash}`;
 }
 
 // Gibt true zurück, wenn der Link Orte enthielt.
@@ -769,15 +776,20 @@ function applySharedHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   const pick = (v, allowed) => (v ?? '').split('|').filter((x) => allowed.includes(x));
   let hadPoints = false;
+  const before = JSON.stringify(state.points);
   for (const l of ['A', 'B']) {
     const v = q.get(l.toLowerCase());
     const m = v?.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
     if (m) {
       const lat = Number(m[1]);
       const lon = Number(m[2]);
-      if (lat > 51 && lat < 54 && lon > 12 && lon < 15) { state.points[l] = [lon, lat]; hadPoints = true; }
+      if (lat > 51 && lat < 54 && lon > 12 && lon < 15) state.points[l] = [lon, lat];
     }
   }
+  // Nur „neue Orte“, wenn sie sich von den gespeicherten unterscheiden (> ~10 m).
+  const near = (p, q) => p && q && Math.abs(p[0] - q[0]) < 2e-4 && Math.abs(p[1] - q[1]) < 2e-4;
+  const old = JSON.parse(before);
+  hadPoints = ['A', 'B'].some((l) => state.points[l] && !near(state.points[l], old[l]));
   if (['bike', 'transit'].includes(q.get('m'))) state.mode = q.get('m');
   const t = Number(q.get('t'));
   if (t >= 10 && t <= 45) state.minutes = Math.round(t / 5) * 5;
@@ -789,8 +801,6 @@ function applySharedHash() {
   if (q.has('tr')) replace(state.cost, pick(q.get('tr'), COSTS));
   if (hadPoints) savePoints();
   saveJson(SOURCE_KEY, { source: state.source });
-  // Link nicht in der Adresszeile stehen lassen (sonst wird er versehentlich weitergegeben).
-  history.replaceState(null, '', location.pathname + location.search);
   return hadPoints;
 }
 
@@ -805,34 +815,6 @@ function syncControls() {
   document.querySelectorAll('#abiFilter input').forEach((el) => (el.checked = state.abi.has(el.value)));
   document.querySelectorAll('#costFilter input').forEach((el) => (el.checked = state.cost.has(el.value)));
 }
-
-function refreshShare() {
-  const withPoints = $('shareWithPoints').checked && setLabels().length > 0;
-  $('shareUrl').value = shareUrl(withPoints);
-  $('sharePointsNote').hidden = !withPoints;
-}
-$('shareBtn').onclick = async () => {
-  const panel = $('sharePanel');
-  panel.hidden = !panel.hidden;
-  $('shareBtn').setAttribute('aria-expanded', String(!panel.hidden));
-  if (!panel.hidden) { refreshShare(); $('shareUrl').select(); }
-};
-$('shareWithPoints').addEventListener('change', refreshShare);
-$('shareCopy').onclick = async () => {
-  refreshShare();
-  try {
-    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-      await navigator.share({ title: 'Schulkarte', url: $('shareUrl').value });
-      return;
-    }
-    await navigator.clipboard.writeText($('shareUrl').value);
-    $('shareCopy').textContent = 'Kopiert ✓';
-  } catch {
-    $('shareUrl').select();
-    $('shareCopy').textContent = 'Markiert – ⌘C/Strg+C';
-  }
-  setTimeout(() => ($('shareCopy').textContent = 'Kopieren'), 2000);
-};
 
 const sharedWithPoints = applySharedHash();
 syncControls();
@@ -857,10 +839,10 @@ function announceShared(withPoints) {
   if (withPoints) map.fitBounds(L.latLngBounds(setLabels().map((l) => [state.points[l][1], state.points[l][0]])).pad(0.6));
   toast(withPoints ? 'Geteilte Auswahl geladen – für genaue Zeiten „Fahrzeiten berechnen“ klicken' : 'Geteilte Auswahl geladen');
 }
-if (sharedWithPoints || location.hash === '' && performance.getEntriesByType('navigation')[0]?.name.includes('#')) announceShared(sharedWithPoints);
+if (sharedWithPoints) announceShared(true);
 // Link in einem schon offenen Tab eingefügt: ohne Neuladen übernehmen.
 window.addEventListener('hashchange', () => {
-  if (!location.hash.includes('=')) return;
+  if (!location.hash.includes('=') || location.href === shareUrl(true)) return;
   const withPoints = applySharedHash();
   syncControls();
   for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
