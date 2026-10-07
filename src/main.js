@@ -538,6 +538,7 @@ function renderTable(visible) {
       state.table.sort = c.key;
       saveJson(TABLE_KEY, state.table);
       renderTable(visible);
+      syncUrl();
       $('schoolTable').querySelector(`th:nth-child(${COLUMNS.indexOf(c) + 1}) button`)?.focus();
     };
     th.append(btn);
@@ -766,6 +767,9 @@ function shareUrl(withPoints) {
   if (state.forms.size < FORMS.length) q.set('f', [...state.forms].join('|'));
   if (state.abi.size < ABIS.length) q.set('abi', [...state.abi].join('|'));
   if (state.cost.size < COSTS.length) q.set('tr', [...state.cost].join('|'));
+  // Sortierung, z. B. s=nachfrage oder s=-nachfrage (absteigend); Standard (Fahrzeit aufsteigend) weglassen.
+  if (state.table.sort !== 'max' || state.table.dir !== 1) q.set('s', `${state.table.dir < 0 ? '-' : ''}${state.table.sort}`);
+  if (!state.table.onlyHits) q.set('alle', '1');
   const hash = q.toString().replace(/%2C/g, ',').replace(/%7C/g, '|');
   return `${location.origin}${location.pathname}${location.search}#${hash}`;
 }
@@ -799,6 +803,16 @@ function applySharedHash() {
   if (q.has('f')) replace(state.forms, pick(q.get('f'), FORMS));
   if (q.has('abi')) replace(state.abi, pick(q.get('abi'), ABIS));
   if (q.has('tr')) replace(state.cost, pick(q.get('tr'), COSTS));
+  const sort = q.get('s');
+  if (sort) {
+    const key = sort.replace(/^-/, '');
+    if (COLUMNS.some((c) => c.key === key)) { state.table.sort = key; state.table.dir = sort.startsWith('-') ? -1 : 1; }
+  } else if (q.has('m')) {
+    state.table.sort = 'max';
+    state.table.dir = 1;
+  }
+  if (q.has('m')) state.table.onlyHits = !q.has('alle');
+  saveJson(TABLE_KEY, state.table);
   if (hadPoints) savePoints();
   saveJson(SOURCE_KEY, { source: state.source });
   return hadPoints;
@@ -814,6 +828,7 @@ function syncControls() {
   document.querySelectorAll('#formFilter input').forEach((el) => (el.checked = state.forms.has(el.value)));
   document.querySelectorAll('#abiFilter input').forEach((el) => (el.checked = state.abi.has(el.value)));
   document.querySelectorAll('#costFilter input').forEach((el) => (el.checked = state.cost.has(el.value)));
+  $('tableOnlyHits').checked = state.table.onlyHits;
 }
 
 const sharedWithPoints = applySharedHash();
