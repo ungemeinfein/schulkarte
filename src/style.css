@@ -41,7 +41,7 @@ html, body { margin: 0; height: 100%; font: var(--fs-l)/1.45 var(--font); color:
 
 /* ---------- Layout ---------- */
 body {
-  --left: 280px;
+  --left: 364px;
   --right: 360px;
   --bottom: 300px;
   display: grid;

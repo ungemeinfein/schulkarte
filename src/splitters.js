@@ -1,7 +1,7 @@
 // Ziehbare Trenner zwischen den Bereichen. Größen landen als CSS-Variablen auf <body>
 // und werden im localStorage gemerkt. Doppelklick setzt auf den Standardwert zurück.
 const STORAGE_KEY = 'schulkarte.layout';
-const LIMITS = { '--left': [200, 600], '--right': [240, 700], '--bottom': [80, 900] };
+const LIMITS = { '--left': [364, 600], '--right': [240, 700], '--bottom': [80, 900] };
 
 export function initSplitters(onResize) {
   const sizes = load();
