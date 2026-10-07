@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { booleanPointInPolygon, distance, featureCollection, intersect } from '@turf/turf';
 import { reachArea, SPEED_KMH } from './isochrones.js';
-import { bikeTimes, pointKey, schoolDay, transitTimes } from './routing.js';
+import { bikeRoute, bikeTimes, pointKey, schoolDay, transitRoute, transitTimes } from './routing.js';
 import { initTermine, nextEventFor, setHits } from './termine.js';
 import { initSplitters } from './splitters.js';
 import { addSearchControl } from './search.js';
@@ -49,6 +49,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 const areaLayer = L.layerGroup().addTo(map);
+const routeLayer = L.layerGroup().addTo(map);
 const schoolLayer = L.layerGroup().addTo(map);
 const markers = {};
 
@@ -154,6 +155,8 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
     .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 40] })
     .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] })
+    .on('popupopen', () => { selectSchool(p.Schule); showRoutes(school); })
+    .on('popupclose', () => { routeLayer.clearLayers(); if (selected === p.Schule) selectSchool(null); })
     .on('mouseover', () => highlightList(p.Schule, true))
     .on('mouseout', () => highlightList(p.Schule, false));
   return school;
@@ -265,6 +268,7 @@ function popupHtml(s) {
     : '';
   return `${carouselHtml(p.Schule)}<div class="popup-body"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3>${sites}
     <table class="popup">
+      ${hasRealTimes() ? `<tr><td colspan="2" class="route-hint">Route${setLabels().length > 1 ? 'n' : ''} auf der Karte: <span class="rh-A">Ort A</span>${state.points.B ? ' · <span class="rh-B">Ort B</span>' : ''} · gestrichelt = zu Fuß</td></tr>` : ''}
       ${row('Ab Ort A', timeText(s, 'A'))}
       ${row('Ab Ort B', timeText(s, 'B'))}
       ${row('Schulform', p.Schulform)}
@@ -302,6 +306,38 @@ map.on('popupclose', () => {
   returnFocus = null;
 });
 
+// ---------- Routen A/B → Schule (nur mit berechneten Fahrzeiten, auf Abruf) ----------
+let routeRequest = 0;
+async function showRoutes(school) {
+  routeLayer.clearLayers();
+  if (!hasRealTimes()) return;
+  const req = ++routeRequest;
+  const mode = state.mode;
+  const results = await Promise.allSettled(setLabels().map(async (l) => ({
+    l, legs: await (mode === 'bike' ? bikeRoute : transitRoute)(state.points[l], school),
+  })));
+  if (req !== routeRequest || !school.marker.isPopupOpen()) return;
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    const { l, legs } = r.value;
+    for (const leg of legs) {
+      const walk = leg.kind === 'walk';
+      L.polyline(leg.coords, { color: '#fff', weight: walk ? 5 : 8, opacity: 0.85, interactive: false }).addTo(routeLayer);
+      const line = L.polyline(leg.coords, {
+        color: COLORS[l], weight: walk ? 3 : 5, opacity: 0.95, dashArray: walk ? '4 6' : null, lineCap: 'round',
+      }).addTo(routeLayer);
+      line.bindTooltip(walk ? `Ort ${l}: zu Fuß` : leg.kind === 'bike' ? `Ort ${l}: Fahrrad` : `Ort ${l}: ${leg.line}`, { sticky: true });
+    }
+  }
+  school.marker.bringToFront();
+  // Ganze Route zeigen; oben Platz fürs Popup lassen (nur wenn die Karte hoch genug ist).
+  const size = map.getSize();
+  if (size.y >= 520 && routeLayer.getLayers().length) {
+    const bounds = L.featureGroup(routeLayer.getLayers()).getBounds().extend(school.marker.getLatLng());
+    map.fitBounds(bounds, { paddingTopLeft: [40, Math.min(420, size.y * 0.55)], paddingBottomRight: [40, 30], maxZoom: 15, animate: true });
+  }
+}
+
 // ---------- Hover-Verknüpfung Liste ↔ Karte ----------
 function highlightMarker(name, on) {
   const s = byName.get(name);
@@ -314,6 +350,24 @@ function highlightMarker(name, on) {
     s.marker.setStyle(s.base);
     if (!s.marker.isPopupOpen()) s.marker.closeTooltip();
   }
+}
+
+// Ausgewählte Schule (offenes Popup): Zeile und Termine bleiben markiert, auch nach Neuaufbau der Listen.
+let selected = null;
+function selectSchool(name) {
+  selected = name;
+  applySelection(true);
+}
+function applySelection(scroll = false) {
+  for (const el of document.querySelectorAll('#schoolTable tbody tr[data-school], #termList li[data-schools]')) {
+    const names = el.dataset.school ? [el.dataset.school] : JSON.parse(el.dataset.schools);
+    el.classList.toggle('sel', selected != null && names.includes(selected));
+  }
+  if (!scroll || !selected) return;
+  const row = document.querySelector('#schoolTable tbody tr.sel');
+  if (row) scrollIntoWrap(row, row.closest('.table-wrap'));
+  const ev = document.querySelector('#termList li.sel');
+  if (ev) scrollIntoWrap(ev, ev.closest('.term-list'));
 }
 
 function highlightList(name, on) {
@@ -446,6 +500,7 @@ function renderSchools() {
   updatePlacing();
   syncUrl();
   setHits(anyArea() ? new Set(hits.map((s) => s.p.Schule)) : null);
+  applySelection();
 }
 
 // ---------- Tabelle ----------

@@ -234,3 +234,79 @@ async function buildTransitIsochrone(point, minutes) {
   circles.push(circle(round(point), homeRadius / 1000, { steps: 24, units: 'kilometers' }));
   return circles.length === 1 ? circles[0] : union(featureCollection(circles));
 }
+
+// ---------- Routen für die Kartenanzeige (auf Abruf beim Öffnen einer Schule) ----------
+
+// Valhalla liefert Polyline6-kodierte Linien.
+function decodePolyline6(str) {
+  const coords = [];
+  let index = 0, lat = 0, lon = 0;
+  while (index < str.length) {
+    for (const which of [0, 1]) {
+      let result = 0, shift = 0, b;
+      do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+      const delta = result & 1 ? ~(result >> 1) : result >> 1;
+      if (which === 0) lat += delta; else lon += delta;
+    }
+    coords.push([lat / 1e6, lon / 1e6]);
+  }
+  return coords;
+}
+
+const routeCache = new Map();
+const cached = (key, fn) => {
+  if (!routeCache.has(key)) {
+    const p = fn();
+    p.catch(() => routeCache.delete(key));
+    routeCache.set(key, p);
+  }
+  return routeCache.get(key);
+};
+
+// [{ kind: 'bike', coords: [[lat, lon], …] }]
+export function bikeRoute(point, school) {
+  return cached(`bike|${pointKey(point)}|${school.p.Schule}`, async () => {
+    const [lon, lat] = round(point);
+    const data = await valhallaPost('route', {
+      locations: [{ lat, lon }, { lat: school.lonLat[1], lon: school.lonLat[0] }],
+      costing: 'bicycle',
+      costing_options: BIKE_COSTING,
+      directions_options: { units: 'km' },
+    });
+    return [{ kind: 'bike', coords: decodePolyline6(data.trip.legs[0].shape) }];
+  });
+}
+
+// [{ kind: 'walk' | 'ride', line?, product?, coords }] – Start an der nächsten Haltestelle, Fußweg dorthin als Gerade.
+export function transitRoute(point, school) {
+  return cached(`transit|${pointKey(point)}|${school.p.Schule}`, async () => {
+    const stop = await nearestStop(point);
+    const { date, offset } = schoolDay();
+    const { journeys = [] } = await bvgGet('/journeys', {
+      from: stop.id,
+      'to.latitude': school.lonLat[1],
+      'to.longitude': school.lonLat[0],
+      'to.address': school.p.Schule,
+      arrival: `${date}T08:00${offset}`,
+      results: 3,
+      polylines: true,
+      stopovers: false,
+      remarks: false,
+    });
+    const home = round(point);
+    const walkToStop = { kind: 'walk', coords: [[home[1], home[0]], [stop.location[1], stop.location[0]]] };
+    const best = journeys
+      .map((j) => ({ j, dur: minutesBetween(j.legs[0].departure ?? j.legs[0].plannedDeparture, j.legs.at(-1).arrival ?? j.legs.at(-1).plannedArrival) }))
+      .sort((a, b) => a.dur - b.dur)[0];
+    if (!best) return [{ kind: 'walk', coords: [[home[1], home[0]], [school.lonLat[1], school.lonLat[0]]] }];
+    const loc = (x) => (x?.location ?? x) && [(x.location ?? x).latitude, (x.location ?? x).longitude];
+    const legs = best.j.legs.map((leg) => {
+      const pts = leg.polyline?.features?.map((f) => [f.geometry.coordinates[1], f.geometry.coordinates[0]]) ?? [];
+      const coords = pts.length > 1 ? pts : [loc(leg.origin), loc(leg.destination)].filter((c) => c && c.every(Number.isFinite));
+      return leg.walking
+        ? { kind: 'walk', coords }
+        : { kind: 'ride', line: leg.line?.name ?? '', product: leg.line?.product ?? '', coords };
+    }).filter((l) => l.coords.length > 1);
+    return [walkToStop, ...legs];
+  });
+}

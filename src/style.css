@@ -153,6 +153,8 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
 #schoolTable tbody tr.hit:hover { background: var(--ok-bg); }
 #schoolTable tbody tr.dim td { color: var(--muted); }
 #schoolTable tbody tr.hl { background: #dbeafe; box-shadow: inset 3px 0 0 var(--A); }
+#schoolTable tbody tr.sel { background: #dbeafe; box-shadow: inset 4px 0 0 var(--text); }
+#schoolTable tbody tr.sel td { color: var(--text); }
 .linkish { all: unset; cursor: pointer; font-weight: 600; }
 .linkish:hover { text-decoration: underline; }
 .linkish:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
@@ -209,6 +211,7 @@ td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); 
 .ev.past { background: var(--bg-soft); }
 .ev.today { box-shadow: 0 0 0 2px #facc15; }
 .ev.hl { border-color: var(--A); background: #eff6ff; }
+.ev.sel { border-color: var(--text); background: #eff6ff; box-shadow: 0 0 0 1px var(--text); }
 .ev-date { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
 .ev-date .wd { font-size: var(--fs-xs); color: var(--muted); }
 .ev-date .dm { font-weight: 700; }
@@ -256,6 +259,8 @@ td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); 
 .popup-title { font-size: var(--fs-l); margin: 0 28px 6px 0; }
 .carousel + .popup-body .popup-title { margin-right: 0; }
 .popup-src { display: inline-block; margin-top: 8px; font-size: var(--fs-s); }
+.route-hint { font-size: var(--fs-xs); color: var(--muted); padding-bottom: 4px !important; }
+.rh-A { color: var(--A); font-weight: 600; } .rh-B { color: var(--B); font-weight: 600; }
 .popup-sites { margin: 0 0 8px; padding: 6px 8px; border-left: 3px solid #f59e0b; background: var(--warn-bg); color: var(--warn-fg); font-size: var(--fs-s); border-radius: 0 4px 4px 0; }
 .school-popup a.leaflet-popup-close-button {
   top: 8px; right: 8px; width: 28px; height: 28px; border-radius: 50%; z-index: 2;
