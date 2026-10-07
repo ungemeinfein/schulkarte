@@ -55,7 +55,10 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // So müssen Marker nie nach vorn geholt werden – das würde beim Hovern das mouseout verschlucken.
 map.createPane('areas').style.zIndex = 350;
 map.createPane('routes').style.zIndex = 380;
-map.createPane('routeLabels').style.zIndex = 390; // Zeit-Etiketten über allen Linien
+// Zeit-Etiketten über Linien und Schul-Markern (overlayPane 400), unter Tooltips/Popups; klick-durchlässig.
+const labelPane = map.createPane('routeLabels');
+labelPane.style.zIndex = 450;
+labelPane.style.pointerEvents = 'none';
 const areaLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const schoolLayer = L.layerGroup().addTo(map);
