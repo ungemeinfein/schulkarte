@@ -50,6 +50,10 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     '<a href="https://valhalla1.openstreetmap.de">Valhalla/FOSSGIS</a>, <a href="https://v6.bvg.transport.rest">transport.rest</a> · Suche: <a href="https://photon.komoot.io">Photon</a>',
 }).addTo(map);
 
+// Eigene Ebenen unter den Schul-Markern (overlayPane, z 400): Flächen, darüber Routen.
+// So müssen Marker nie nach vorn geholt werden – das würde beim Hovern das mouseout verschlucken.
+map.createPane('areas').style.zIndex = 350;
+map.createPane('routes').style.zIndex = 380;
 const areaLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const schoolLayer = L.layerGroup().addTo(map);
@@ -159,8 +163,8 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`
     .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] })
     .on('popupopen', () => { selectSchool(p.Schule); hoverRoutes(null); })
     .on('popupclose', () => { if (selected === p.Schule) selectSchool(null); hoverRoutes(null); })
-    .on('mouseover', () => { highlightList(p.Schule, true); hoverRoutes(p.Schule); })
-    .on('mouseout', () => { highlightList(p.Schule, false); hoverRoutes(null); });
+    .on('mouseover', () => { showOnlyTooltip(school.marker); highlightList(p.Schule, true); hoverRoutes(p.Schule); })
+    .on('mouseout', () => { school.marker.closeTooltip(); highlightList(p.Schule, false); hoverRoutes(null); });
   return school;
 });
 const byName = new Map(schools.map((s) => [s.p.Schule, s]));
@@ -361,24 +365,31 @@ async function showRoutes(school) {
     const { l, legs } = r.value;
     for (const leg of legs) {
       const walk = leg.kind === 'walk';
-      L.polyline(leg.coords, { color: '#fff', weight: walk ? 5 : 8, opacity: 0.85, interactive: false }).addTo(routeLayer);
+      L.polyline(leg.coords, { pane: 'routes', color: '#fff', weight: walk ? 5 : 8, opacity: 0.85, interactive: false }).addTo(routeLayer);
       const line = L.polyline(leg.coords, {
-        color: COLORS[l], weight: walk ? 3 : 5, opacity: 0.95, dashArray: walk ? '4 6' : null, lineCap: 'round',
+        pane: 'routes', color: COLORS[l], weight: walk ? 3 : 5, opacity: 0.95, dashArray: walk ? '4 6' : null, lineCap: 'round',
       }).addTo(routeLayer);
       line.bindTooltip(walk ? `Ort ${l}: zu Fuß` : leg.kind === 'bike' ? `Ort ${l}: Fahrrad` : `Ort ${l}: ${leg.line}`, { sticky: true });
     }
   }
-  if (schoolLayer.hasLayer(school.marker)) school.marker.bringToFront();
 }
 
 // ---------- Hover-Verknüpfung Liste ↔ Karte ----------
+// Höchstens ein Namensschild gleichzeitig offen.
+let openTipMarker = null;
+function showOnlyTooltip(marker) {
+  if (openTipMarker && openTipMarker !== marker) openTipMarker.closeTooltip();
+  openTipMarker = marker;
+}
+
 function highlightMarker(name, on) {
   hoverRoutes(on ? name : null);
   const s = byName.get(name);
   if (!s?.base || !schoolLayer.hasLayer(s.marker)) return;
   if (on) {
     s.marker.setStyle({ ...s.base, color: '#111827', weight: 4, radius: s.base.radius + 4, fillOpacity: 1 });
-    s.marker.bringToFront();
+    s.marker.bringToFront(); // Maus ist hier über der Liste, nicht über dem Marker
+    showOnlyTooltip(s.marker);
     s.marker.openTooltip();
   } else {
     s.marker.setStyle(s.base);
@@ -478,12 +489,14 @@ function drawAreas() {
     if (!state.areas[l]) continue;
     L.geoJSON(state.areas[l], {
       interactive: false,
+      pane: 'areas',
       style: { color: COLORS[l], weight: 2, fillOpacity: 0.07, dashArray: '6 4' },
     }).addTo(areaLayer);
   }
   if (state.overlap) {
     L.geoJSON(state.overlap, {
       interactive: false,
+      pane: 'areas',
       style: { color: COLORS.overlap, weight: 2, fillColor: COLORS.overlap, fillOpacity: 0.22 },
     }).addTo(areaLayer);
   }
