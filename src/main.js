@@ -160,7 +160,9 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`
   const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), lonLat: f.geometry.coordinates, hit: false };
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
     .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 40] })
-    .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] });
+    .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] })
+    .on('mouseover', () => highlightList(p.Schule, true))
+    .on('mouseout', () => highlightList(p.Schule, false));
   return school;
 });
 const byName = new Map(schools.map((s) => [s.p.Schule, s]));
@@ -293,6 +295,40 @@ map.on('popupclose', () => {
   returnFocus = null;
 });
 
+// ---------- Hover-Verknüpfung Liste ↔ Karte ----------
+function highlightMarker(name, on) {
+  const s = byName.get(name);
+  if (!s?.base || !schoolLayer.hasLayer(s.marker)) return;
+  if (on) {
+    s.marker.setStyle({ ...s.base, color: '#111827', weight: 4, radius: s.base.radius + 4, fillOpacity: 1 });
+    s.marker.bringToFront();
+    s.marker.openTooltip();
+  } else {
+    s.marker.setStyle(s.base);
+    if (!s.marker.isPopupOpen()) s.marker.closeTooltip();
+  }
+}
+
+function highlightList(name, on) {
+  for (const el of document.querySelectorAll('#schoolTable tbody tr[data-school], #termList li[data-schools]')) {
+    const names = el.dataset.school ? [el.dataset.school] : JSON.parse(el.dataset.schools);
+    if (!names.includes(name)) continue;
+    el.classList.toggle('hl', on);
+    if (on && el.tagName === 'TR') scrollIntoWrap(el, el.closest('.table-wrap'));
+    if (on && el.tagName === 'LI') scrollIntoWrap(el, el.closest('.term-list'));
+  }
+}
+
+// Nur innerhalb des eigenen Scrollbereichs nachziehen, nie die ganze Seite.
+function scrollIntoWrap(el, wrap) {
+  if (!wrap || wrap.scrollHeight <= wrap.clientHeight) return;
+  const r = el.getBoundingClientRect();
+  const w = wrap.getBoundingClientRect();
+  const headH = wrap.querySelector('thead')?.offsetHeight ?? 0;
+  if (r.top < w.top + headH) wrap.scrollTop -= w.top + headH - r.top + 4;
+  else if (r.bottom > w.bottom) wrap.scrollTop += r.bottom - w.bottom + 4;
+}
+
 function focusSchool(name) {
   const s = byName.get(name);
   if (!s) return false;
@@ -373,13 +409,14 @@ function renderSchools() {
   for (const s of schools) {
     if (!visibleSet.has(s)) { schoolLayer.removeLayer(s.marker); continue; }
     const dim = anyArea() && !s.hit;
-    s.marker.setStyle({
+    s.base = {
       color: s.hit ? '#14532d' : dim ? '#94a3b8' : '#334155',
       fillColor: s.hit ? COLORS.overlap : dim ? '#e2e8f0' : '#64748b',
       fillOpacity: dim ? 0.7 : 0.95,
       weight: s.hit ? 3 : 2,
       radius: s.hit ? 9 : 7,
-    });
+    };
+    s.marker.setStyle(s.base);
     if (!schoolLayer.hasLayer(s.marker)) s.marker.addTo(schoolLayer);
     if (s.hit) s.marker.bringToFront();
   }
@@ -542,7 +579,10 @@ function renderTable(visible) {
       if (c.cls?.includes('clip')) td.title = td.textContent;
       tr.append(td);
     }
+    tr.dataset.school = s.p.Schule;
     tr.onclick = (e) => { if (!e.target.closest('button')) focusSchool(s.p.Schule); };
+    tr.onmouseenter = () => highlightMarker(s.p.Schule, true);
+    tr.onmouseleave = () => highlightMarker(s.p.Schule, false);
     return tr;
   }));
 }
@@ -727,7 +767,7 @@ document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => show
 showTab(loadJson(TAB_KEY).tab ?? 'sidebar');
 window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => map.invalidateSize(), 50));
 
-initTermine({ focusSchool, hasSchool: (n) => byName.has(n) });
+initTermine({ focusSchool, hasSchool: (n) => byName.has(n), highlight: highlightMarker });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
 if (!state.points.A) search.open('A');
 renderSchools(); // sofort zeigen, Flächen kommen danach

@@ -129,10 +129,7 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
 .filters legend { margin-bottom: 4px; }
 
 /* ---------- Tabelle ---------- */
-.table-wrap { overflow: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-.table-wrap::-webkit-scrollbar { height: 8px; width: 8px; }
-.table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap { overflow: auto; flex: 1; background: var(--surface); }
 #schoolTable { border-collapse: collapse; width: 100%; font-size: var(--fs-m); }
 #schoolTable thead th {
   position: sticky; top: 0; z-index: 1; background: var(--bg-soft); text-align: left; font-weight: 600;
@@ -155,6 +152,7 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
 #schoolTable tbody tr.hit { background: var(--hit-bg); }
 #schoolTable tbody tr.hit:hover { background: var(--ok-bg); }
 #schoolTable tbody tr.dim td { color: var(--muted); }
+#schoolTable tbody tr.hl { background: #dbeafe; box-shadow: inset 3px 0 0 var(--A); }
 .linkish { all: unset; cursor: pointer; font-weight: 600; }
 .linkish:hover { text-decoration: underline; }
 .linkish:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
@@ -208,6 +206,7 @@ td .time.approx { font-weight: 400; }
 .ev.art-frist { border-left-color: var(--art-frist); }
 .ev.past { background: var(--bg-soft); }
 .ev.today { box-shadow: 0 0 0 2px #facc15; }
+.ev.hl { border-color: var(--A); background: #eff6ff; }
 .ev-date { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
 .ev-date .wd { font-size: var(--fs-xs); color: var(--muted); }
 .ev-date .dm { font-weight: 700; }

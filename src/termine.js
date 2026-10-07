@@ -12,7 +12,7 @@ const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'A
 const $ = (id) => document.getElementById(id);
 
 const prefs = loadPrefs();
-let ctx = { hitNames: null, focusSchool: () => false, hasSchool: () => false };
+let ctx = { hitNames: null, focusSchool: () => false, hasSchool: () => false, highlight: () => {} };
 
 function dayKey(s) {
   return s.slice(0, 10);
@@ -104,6 +104,9 @@ export function render() {
         schoolEl.append(n);
       }
     });
+    li.dataset.schools = JSON.stringify(names);
+    li.onmouseenter = () => names.forEach((n) => ctx.highlight(n, true));
+    li.onmouseleave = () => names.forEach((n) => ctx.highlight(n, false));
     li.querySelector('.tt').textContent = t.titel;
     if (t.hinweis) li.querySelector('.ev-note').textContent = t.hinweis;
     if (quelle) li.querySelector('.src').href = quelle;
