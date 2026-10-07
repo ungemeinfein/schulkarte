@@ -239,12 +239,13 @@ td .time.approx { font-weight: 400; }
 .map-search-toggle { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: transparent; color: var(--text-2); cursor: pointer; border-radius: 6px; }
 .map-search-toggle:hover, .map-search-toggle[aria-expanded="true"] { color: var(--A); }
 .map-search form { display: flex; flex: 1; min-width: 0; }
-.map-search input { flex: 1; min-width: 0; border: 0; padding: 7px 4px; font: inherit; background: transparent; }
-.map-search form button { border: 0; border-left: 1px solid var(--line); background: #f9fafb; padding: 0 10px; font: inherit; cursor: pointer; border-radius: 0 6px 6px 0; }
+.map-search input { flex: 1; min-width: 0; border: 0; padding: 7px 8px 7px 2px; font: inherit; background: transparent; border-radius: 0 6px 6px 0; }
 .map-search-results { flex-basis: 100%; list-style: none; margin: 0; padding: 4px; border-top: 1px solid var(--line); max-height: 240px; overflow: auto; }
 .map-search-results li { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-radius: 4px; }
 .map-search-results li:hover { background: var(--bg-soft); }
-.map-search-results .name { all: unset; flex: 1; min-width: 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-search-results .name { all: unset; flex: 1; min-width: 0; cursor: pointer; display: flex; flex-direction: column; padding: 2px 0; }
+.map-search-results .name .title, .map-search-results .name .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-search-results .name .sub { font-size: var(--fs-xs); color: var(--muted); }
 .map-search-results .name:focus-visible { outline: 2px solid var(--focus); }
 .map-search-results .msg { color: var(--muted); white-space: normal; }
 .map-search .pick { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid; background: var(--surface); font-weight: 700; cursor: pointer; }

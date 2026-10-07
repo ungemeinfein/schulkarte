@@ -45,7 +45,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende ' +
     '(<a href="https://www.openstreetmap.org/fixthemap">Karte verbessern</a>) · Routing: ' +
-    '<a href="https://valhalla1.openstreetmap.de">Valhalla/FOSSGIS</a>, <a href="https://v6.bvg.transport.rest">transport.rest</a>',
+    '<a href="https://valhalla1.openstreetmap.de">Valhalla/FOSSGIS</a>, <a href="https://v6.bvg.transport.rest">transport.rest</a> · Suche: <a href="https://photon.komoot.io">Photon</a>',
 }).addTo(map);
 
 const areaLayer = L.layerGroup().addTo(map);
