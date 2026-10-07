@@ -253,13 +253,17 @@ function popupHtml(s) {
   const d = demand(s);
   const next = nextEventFor(p.Schule);
   const abi = `${s.abi}${p['Eigene Oberstufe'] ? ` – ${p['Eigene Oberstufe']}` : ''}`;
-  return `${carouselHtml(p.Schule)}<div class="popup-body"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3>
+  const sites = p['Weitere Standorte']
+    ? `<div class="popup-sites" role="note"><strong>Mehrere Standorte.</strong> Karte und Fahrzeiten beziehen sich auf <strong>${escapeHtml(p.Adresse)}</strong>. Weitere: ${escapeHtml(p['Weitere Standorte'])}</div>`
+    : '';
+  return `${carouselHtml(p.Schule)}<div class="popup-body"><h3 class="popup-title">${escapeHtml(p.Schule)}</h3>${sites}
     <table class="popup">
       ${row('Ab Ort A', timeText(s, 'A'))}
       ${row('Ab Ort B', timeText(s, 'B'))}
       ${row('Schulform', p.Schulform)}
       ${row('Abitur', abi)}
       ${row('Kosten', p.Kosten)}
+      ${row('Schüler', pupils(s) == null ? '' : `${pupils(s).toLocaleString('de-DE')}${p['Schüler Jg. 7'] ? ` (Jahrgang 7: ${p['Schüler Jg. 7']})` : ''}${p['Schülerzahl Stand'] ? `, Stand ${p['Schülerzahl Stand']}` : ''}`)}
       ${row('Nachfrage', d == null ? '' : `${Math.round(d * 100)} % (${p['Erstwünsche 2026/27']} Erstwünsche auf ${p['Plätze 2026/27']} Plätze, 2026/27)`)}
       ${row('Nächster Termin', next ? `${next.start.slice(8, 10)}.${next.start.slice(5, 7)}. ${next.titel}` : '')}
       ${row('Adresse', p.Adresse)}
@@ -446,6 +450,11 @@ function demand(s) {
   return places && s.p['Erstwünsche 2026/27'] !== '' ? wishes / places : null;
 }
 
+function pupils(s) {
+  const n = Number(s.p['Schülerzahl']);
+  return s.p['Schülerzahl'] && Number.isFinite(n) ? n : null;
+}
+
 function maxMin(s) {
   const mins = setLabels().map((l) => bestMin(s, l));
   return !mins.length || mins.some((m) => m == null) ? null : Math.max(...mins);
@@ -465,7 +474,7 @@ function detailLine(s, l) {
   return `Ort ${l} – ${part('transit')} · ${part('bike')} · ${fmtKm(km(s, l))} Luftlinie`;
 }
 
-const COLUMNS = [
+const ALL_COLUMNS = [
   { key: 'status', label: 'Beide', title: 'Von den gesetzten Orten in der eingestellten Zeit erreichbar',
     value: (s) => (anyArea() ? (s.hit ? 0 : 1) : 0),
     html: (s) => (anyArea()
@@ -494,6 +503,15 @@ const COLUMNS = [
       const tip = `2026/27: ${s.p['Erstwünsche 2026/27']} Erstwünsche auf ${s.p['Plätze 2026/27']} Plätze${s.p['Nachfrage Hinweis'] ? ` – ${s.p['Nachfrage Hinweis']}` : ''}`;
       return `<span class="demand ${cls}" title="${escapeHtml(tip)}">${Math.round(d * 100)} %${s.p['Nachfrage Hinweis'] ? '*' : ''}</span>`;
     } },
+  { key: 'schueler', label: 'Schüler', num: true, hideIfEmpty: true,
+    title: 'Schülerzahl der ganzen Schule (laut Schulverzeichnis bzw. Schule). Beim Darüberfahren: Jahrgang 7 und Stand.',
+    value: (s) => pupils(s),
+    html: (s) => {
+      const n = pupils(s);
+      if (n == null) return '';
+      const tip = [s.p['Schüler Jg. 7'] ? `Jahrgang 7: ${s.p['Schüler Jg. 7']}` : '', s.p['Schülerzahl Stand'] ? `Stand ${s.p['Schülerzahl Stand']}` : ''].filter(Boolean).join(' · ');
+      return `<span title="${escapeHtml(tip)}">${n.toLocaleString('de-DE')}</span>`;
+    } },
   { key: 'max', label: () => `Fahrzeit (${MODE_LABEL[state.mode]})`, num: true,
     title: () => `Längerer der beiden Wege ab Ort A und Ort B mit ${state.mode === 'bike' ? 'dem Rad' : 'ÖPNV'}, in Minuten. Details beim Darüberfahren.`,
     value: (s) => maxMin(s),
@@ -519,6 +537,7 @@ const COLUMNS = [
 
 function renderTable(visible) {
   const { sort, dir, onlyHits } = state.table;
+  const COLUMNS = ALL_COLUMNS.filter((c) => !c.hideIfEmpty || schools.some((s) => c.value(s) != null));
   const col = COLUMNS.find((c) => c.key === sort) ?? COLUMNS[0];
   const fallback = COLUMNS.find((c) => c.key === (anyArea() ? 'max' : 'name'));
   // Sortierschlüssel einmal pro Zeile berechnen.
@@ -815,7 +834,7 @@ function applySharedHash() {
   const sort = q.get('s');
   if (sort) {
     const key = sort.replace(/^-/, '');
-    if (COLUMNS.some((c) => c.key === key)) { state.table.sort = key; state.table.dir = sort.startsWith('-') ? -1 : 1; }
+    if (ALL_COLUMNS.some((c) => c.key === key)) { state.table.sort = key; state.table.dir = sort.startsWith('-') ? -1 : 1; }
   } else if (q.has('m')) {
     state.table.sort = 'max';
     state.table.dir = 1;
