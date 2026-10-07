@@ -178,7 +178,6 @@ td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); 
 .demand.over { background: var(--bad-bg); color: var(--bad-fg); }
 .demand.tight { background: var(--warn-bg); color: var(--warn-fg); }
 .demand.free { background: var(--ok-bg); color: var(--ok-fg); }
-.other-district { color: var(--warn-fg); }
 .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 2px solid #14532d; vertical-align: -1px; }
 .dot.hit { background: var(--hit); }
 .dot.dim { background: #e2e8f0; border-color: #94a3b8; }

@@ -263,7 +263,7 @@ function popupHtml(s) {
       ${row('Schulform', p.Schulform)}
       ${row('Abitur', abi)}
       ${row('Kosten', p.Kosten)}
-      ${row('Schüler', pupils(s) == null ? '' : `${pupils(s).toLocaleString('de-DE')}${p['Schüler Jg. 7'] ? ` (Jahrgang 7: ${p['Schüler Jg. 7']})` : ''}${p['Schülerzahl Stand'] ? `, Stand ${p['Schülerzahl Stand']}` : ''}`)}
+      ${row('Schüler*innen', pupils(s) == null ? '' : `${pupils(s).toLocaleString('de-DE')}${p['Schüler Jg. 7'] ? ` (Jahrgang 7: ${p['Schüler Jg. 7']})` : ''}${p['Schülerzahl Stand'] ? `, Stand ${p['Schülerzahl Stand']}` : ''}`)}
       ${row('Nachfrage', d == null ? '' : `${Math.round(d * 100)} % (${p['Erstwünsche 2026/27']} Erstwünsche auf ${p['Plätze 2026/27']} Plätze, 2026/27)`)}
       ${row('Nächster Termin', next ? `${next.start.slice(8, 10)}.${next.start.slice(5, 7)}. ${next.titel}` : '')}
       ${row('Adresse', p.Adresse)}
@@ -490,9 +490,7 @@ const ALL_COLUMNS = [
   { key: 'cost', label: 'Träger', value: (s) => s.cost,
     html: (s) => `<span class="badge c-${s.cost}" title="${escapeHtml(s.p.Kosten || '')}">${s.cost === 'privat' ? 'privat €' : 'staatlich'}</span>` },
   { key: 'bezirk', label: 'Bezirk', value: (s) => s.p.Bezirk || null,
-    html: (s) => (s.p.Bezirk === 'Treptow-Köpenick'
-      ? escapeHtml(s.p.Bezirk)
-      : `<span class="other-district" title="Bei Zweit- und Drittwunsch haben Kinder aus diesem Bezirk Vorrang">${escapeHtml(s.p.Bezirk)} <span aria-hidden="true">◆</span><span class="sr-only"> (anderer Bezirk)</span></span>`) },
+    html: (s) => escapeHtml(s.p.Bezirk) },
   { key: 'nachfrage', label: 'Nachfrage', num: true,
     title: 'Erstwünsche pro Platz 2026/27. Über 100 %: keine Plätze für Zweit- und Drittwünsche',
     value: demand,
@@ -503,13 +501,13 @@ const ALL_COLUMNS = [
       const tip = `2026/27: ${s.p['Erstwünsche 2026/27']} Erstwünsche auf ${s.p['Plätze 2026/27']} Plätze${s.p['Nachfrage Hinweis'] ? ` – ${s.p['Nachfrage Hinweis']}` : ''}`;
       return `<span class="demand ${cls}" title="${escapeHtml(tip)}">${Math.round(d * 100)} %${s.p['Nachfrage Hinweis'] ? '*' : ''}</span>`;
     } },
-  { key: 'schueler', label: 'Schüler', num: true, hideIfEmpty: true,
-    title: 'Schülerzahl der ganzen Schule (laut Schulverzeichnis bzw. Schule). Beim Darüberfahren: Jahrgang 7 und Stand.',
+  { key: 'schueler', label: 'Größe', num: true, hideIfEmpty: true,
+    title: 'Schüler*innen der ganzen Schule (laut Schulverzeichnis bzw. Schule). Beim Darüberfahren: Jahrgang 7 und Stand.',
     value: (s) => pupils(s),
     html: (s) => {
       const n = pupils(s);
       if (n == null) return '';
-      const tip = [s.p['Schüler Jg. 7'] ? `Jahrgang 7: ${s.p['Schüler Jg. 7']}` : '', s.p['Schülerzahl Stand'] ? `Stand ${s.p['Schülerzahl Stand']}` : ''].filter(Boolean).join(' · ');
+      const tip = [`${n.toLocaleString('de-DE')} Schüler*innen`, s.p['Schüler Jg. 7'] ? `Jahrgang 7: ${s.p['Schüler Jg. 7']}` : '', s.p['Schülerzahl Stand'] ? `Stand ${s.p['Schülerzahl Stand']}` : ''].filter(Boolean).join(' · ');
       return `<span title="${escapeHtml(tip)}">${n.toLocaleString('de-DE')}</span>`;
     } },
   { key: 'max', label: () => `Fahrzeit (${MODE_LABEL[state.mode]})`, num: true,
