@@ -193,6 +193,12 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson?
   return school;
 });
 const byName = new Map(schools.map((s) => [s.p.Schule, s]));
+// Popups nie höher als die Karte (sonst ragen sie heraus); vor dem Öffnen setzen, damit das Verschieben der Karte passt.
+function fitPopupHeights() {
+  const maxH = Math.max(220, map.getSize().y - 110);
+  for (const s of schools) s.marker.getPopup().options.maxHeight = maxH;
+}
+fitPopupHeights();
 // Karte auf die Schulen ausrichten (kein fest eingebauter Mittelpunkt).
 map.fitBounds(L.latLngBounds(schools.filter((s) => s.p.Bezirk !== 'Brandenburg').map((s) => [s.lonLat[1], s.lonLat[0]])), { padding: [20, 20] });
 
@@ -345,7 +351,7 @@ map.on('popupopen', (e) => {
     showFoto(fig, 0);
     fig.querySelector('.car-prev')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) - 1));
     fig.querySelector('.car-next')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) + 1));
-    fig.querySelector('img').addEventListener('load', () => e.popup.update(), { once: true });
+    fig.querySelector('img').addEventListener('load', () => { e.popup.update(); e.popup._adjustPan?.(); }, { once: true });
   }
   if (returnFocus) {
     el.setAttribute('tabindex', '-1');
@@ -516,7 +522,8 @@ function focusSchool(name) {
   const s = byName.get(name);
   if (!s) return false;
   returnFocus = document.activeElement;
-  map.setView(s.marker.getLatLng(), Math.max(map.getZoom(), 14));
+  // Ohne Animation zoomen, damit das anschließende Verschieben fürs Popup nicht mit der Zoom-Animation kollidiert.
+  map.setView(s.marker.getLatLng(), Math.max(map.getZoom(), 14), { animate: false });
   s.marker.addTo(schoolLayer).openPopup();
   return true;
 }
@@ -1129,7 +1136,7 @@ function syncControls() {
 const sharedWithPoints = applySharedHash();
 syncControls();
 
-initSplitters(() => map.invalidateSize());
+initSplitters(() => { map.invalidateSize(); fitPopupHeights(); });
 
 // ---------- Tabs (schmale Ansicht) ----------
 const TAB_KEY = 'schulkarte.tab';
@@ -1140,7 +1147,7 @@ function showTab(id) {
 }
 document.querySelectorAll('#tabs button').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
 showTab(loadJson(TAB_KEY).tab ?? 'sidebar');
-window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => map.invalidateSize(), 50));
+window.matchMedia('(max-width: 1099px)').addEventListener('change', () => setTimeout(() => { map.invalidateSize(); fitPopupHeights(); }, 50));
 
 initTermine({ focusSchool, hasSchool: (n) => byName.has(n), highlight: highlightMarker, favs: state.favs });
 for (const l of ['A', 'B']) if (state.points[l]) placePoint(l, state.points[l]);
