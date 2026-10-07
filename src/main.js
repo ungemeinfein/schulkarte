@@ -5,6 +5,7 @@ import { reachArea, SPEED_KMH } from './isochrones.js';
 import { bikeTimes, pointKey, schoolDay, transitTimes } from './routing.js';
 import { initTermine, nextEventFor, setHits } from './termine.js';
 import { initSplitters } from './splitters.js';
+import { addSearchControl } from './search.js';
 import './style.css';
 
 const STORAGE_KEY = 'schulkarte.points';
@@ -85,6 +86,16 @@ map.on('click', (e) => {
   update();
 });
 
+addSearchControl(map, (label, lonLat) => {
+  const moved = Boolean(state.points[label]);
+  placePoint(label, lonLat);
+  state.armed = null;
+  map.setView([lonLat[1], lonLat[0]], Math.max(map.getZoom(), 14));
+  const next = nextLabel();
+  toast(`Ort ${label} ${moved ? 'neu ' : ''}gesetzt${next ? ` – jetzt ${next} setzen` : ''}`, label);
+  update();
+});
+
 // Kurze Rückmeldung oben auf der Karte.
 const toastEl = Object.assign(document.createElement('div'), { className: 'map-toast', role: 'status' });
 toastEl.setAttribute('aria-live', 'polite');
@@ -130,11 +141,13 @@ const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`
   const p = f.properties;
   const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), lonLat: f.geometry.coordinates, hit: false };
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
-    .bindPopup(() => popupHtml(school), { maxWidth: 380, minWidth: 260 })
+    .bindPopup(() => popupHtml(school), { maxWidth: 380, minWidth: 260, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 20] })
     .bindTooltip(p.Schule, { direction: 'top', offset: [0, -6] });
   return school;
 });
 const byName = new Map(schools.map((s) => [s.p.Schule, s]));
+// Freie Fotos von Wikimedia Commons (public/fotos.json, erzeugt mit npm run fotos).
+const fotos = await fetch(`${import.meta.env.BASE_URL}fotos.json`).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
 
 function km(school, label) {
   const pt = state.points[label];
@@ -168,9 +181,50 @@ function bestMin(school, label, mode = state.mode) {
   return r === undefined ? approxMin(school, label, mode) : r;
 }
 
+function carouselHtml(name) {
+  const list = fotos[name];
+  if (!list?.length) return '';
+  const nav = list.length > 1
+    ? `<button type="button" class="car-prev" aria-label="Vorheriges Foto">‹</button>
+       <button type="button" class="car-next" aria-label="Nächstes Foto">›</button>
+       <span class="car-count">1 / ${list.length}</span>`
+    : '';
+  return `<figure class="carousel" data-school="${escapeHtml(name)}" data-i="0">
+      <div class="car-frame"><img src="${escapeHtml(list[0].thumb)}" alt="${escapeHtml(list[0].title)}" loading="lazy" />${nav}</div>
+      <figcaption class="car-credit"></figcaption>
+    </figure>`;
+}
+
+function showFoto(fig, i) {
+  const list = fotos[fig.dataset.school];
+  const n = list.length;
+  const idx = ((i % n) + n) % n;
+  const f = list[idx];
+  fig.dataset.i = idx;
+  const img = fig.querySelector('img');
+  img.src = f.thumb;
+  img.alt = f.title;
+  const count = fig.querySelector('.car-count');
+  if (count) count.textContent = `${idx + 1} / ${n}`;
+  const credit = fig.querySelector('.car-credit');
+  credit.replaceChildren('Foto: ', f.author, ' · ');
+  const lic = Object.assign(document.createElement('a'), { href: f.licenseUrl || f.page, target: '_blank', rel: 'noopener', textContent: f.license || 'Lizenz' });
+  const src = Object.assign(document.createElement('a'), { href: f.page, target: '_blank', rel: 'noopener', textContent: 'Wikimedia Commons' });
+  credit.append(lic, ' · ', src);
+}
+
+map.on('popupopen', (e) => {
+  const fig = e.popup.getElement()?.querySelector('.carousel');
+  if (!fig) return;
+  showFoto(fig, 0);
+  fig.querySelector('.car-prev')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) - 1));
+  fig.querySelector('.car-next')?.addEventListener('click', () => showFoto(fig, Number(fig.dataset.i) + 1));
+  fig.querySelector('img').addEventListener('load', () => e.popup.update(), { once: true });
+});
+
 function popupHtml({ p }) {
   const row = (k, v) => (v ? `<tr><th>${k}</th><td>${escapeHtml(v)}</td></tr>` : '');
-  return `<strong>${escapeHtml(p.Schule)}</strong>
+  return `${carouselHtml(p.Schule)}<strong>${escapeHtml(p.Schule)}</strong>
     <table class="popup">
       ${row('Schulform', p.Schulform)}
       ${row('Adresse', p.Adresse)}

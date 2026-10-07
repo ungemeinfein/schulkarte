@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "geocode": "node scripts/geocode.mjs"
+    "geocode": "node scripts/geocode.mjs",
+    "fotos": "node scripts/fotos.mjs"
   },
   "dependencies": {
     "@turf/turf": "^7.1.0",
