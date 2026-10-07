@@ -345,6 +345,26 @@ function rememberRoutes(label, mode, name, legs) {
   saveRoutesTimer = setTimeout(() => saveJson(ROUTES_KEY, state.routes), 500);
 }
 
+// Punkt auf halber Streckenlänge (nicht nur mittlerer Stützpunkt).
+function midpoint(coords) {
+  const segs = [];
+  let total = 0;
+  for (let i = 1; i < coords.length; i++) {
+    const d = Math.hypot(coords[i][0] - coords[i - 1][0], (coords[i][1] - coords[i - 1][1]) * 0.61);
+    segs.push(d);
+    total += d;
+  }
+  let acc = 0;
+  for (let i = 0; i < segs.length; i++) {
+    if (acc + segs[i] >= total / 2) {
+      const t = segs[i] ? (total / 2 - acc) / segs[i] : 0;
+      return [coords[i][0] + (coords[i + 1][0] - coords[i][0]) * t, coords[i][1] + (coords[i + 1][1] - coords[i][1]) * t];
+    }
+    acc += segs[i];
+  }
+  return coords[0];
+}
+
 let routeRequest = 0;
 async function showRoutes(school) {
   const req = ++routeRequest;
@@ -365,11 +385,20 @@ async function showRoutes(school) {
     const { l, legs } = r.value;
     for (const leg of legs) {
       const walk = leg.kind === 'walk';
-      L.polyline(leg.coords, { pane: 'routes', color: '#fff', weight: walk ? 5 : 8, opacity: 0.85, interactive: false }).addTo(routeLayer);
+      L.polyline(leg.coords, { pane: 'routes', color: '#fff', weight: walk ? 4 : 5, opacity: 0.6, interactive: false }).addTo(routeLayer);
       const line = L.polyline(leg.coords, {
-        pane: 'routes', color: COLORS[l], weight: walk ? 3 : 5, opacity: 0.95, dashArray: walk ? '4 6' : null, lineCap: 'round',
+        pane: 'routes', color: COLORS[l], weight: walk ? 2 : 3, opacity: 0.75, dashArray: walk ? '3 5' : null, lineCap: 'round',
       }).addTo(routeLayer);
       line.bindTooltip(walk ? `Ort ${l}: zu Fuß` : leg.kind === 'bike' ? `Ort ${l}: Fahrrad` : `Ort ${l}: ${leg.line}`, { sticky: true });
+    }
+    // Fahrzeit als kleines Etikett auf der Mitte der Route.
+    const min = realMin(school, l, mode);
+    const path = legs.flatMap((leg) => leg.coords);
+    if (min != null && path.length > 1) {
+      L.marker(midpoint(path), {
+        pane: 'routes', interactive: false, keyboard: false,
+        icon: L.divIcon({ className: `route-label route-label-${l}`, html: `${min} min`, iconSize: null }),
+      }).addTo(routeLayer);
     }
   }
 }

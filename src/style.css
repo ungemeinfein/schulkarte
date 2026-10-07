@@ -290,6 +290,14 @@ td .time .unit { font-weight: 400; color: var(--muted); font-size: var(--fs-s); 
 .map-toast[data-label="A"] { background: var(--A); }
 .map-toast[data-label="B"] { background: var(--B); }
 @media (prefers-reduced-motion: reduce) { .map-toast { transition: none; } }
+.route-label {
+  width: auto !important; height: auto !important; transform-origin: center;
+  translate: -50% -50%; white-space: nowrap; pointer-events: none;
+  padding: 1px 6px; border-radius: 999px; background: rgba(255,255,255,.92); border: 1.5px solid;
+  font: 600 var(--fs-xs)/1.4 var(--font); box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.route-label-A { color: var(--A); border-color: var(--A); }
+.route-label-B { color: var(--B); border-color: var(--B); }
 .pin { border-radius: 50%; color: #fff; font-weight: 700; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .pin-A { background: var(--A); } .pin-B { background: var(--B); }
 
