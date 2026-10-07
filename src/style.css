@@ -118,7 +118,7 @@ legend { padding: 0; font-weight: 600; font-size: var(--fs-l); }
 .privacy p { margin: 0 0 4px; }
 .privacy ul { margin: 0; padding-left: 16px; }
 .privacy li { margin: 2px 0; }
-.privacy[hidden] { display: none; }
+.privacy[hidden], .filters[hidden] { display: none; }
 .info {
   display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0;
   border: 1px solid var(--muted); border-radius: 50%; background: transparent; color: var(--muted);
@@ -183,6 +183,11 @@ td .delta.approx { font-weight: 400; font-style: italic; }
 .c-privat { background: var(--bad-bg); color: var(--bad-fg); }
 .abi-ja { background: var(--ok-bg); color: var(--ok-fg); }
 .abi-im-Aufbau { background: var(--warn-bg); color: var(--warn-fg); }
+.gt-gebunden { background: #ede9fe; color: #5b21b6; }
+.gt-teilgebunden { background: #e0e7ff; color: #3730a3; }
+.gt-offen { background: #e0f2fe; color: #075985; }
+.gt-Halbtag { background: var(--bg-soft); color: var(--muted); }
+#gtFilter label { cursor: help; }
 .abi-nein, .abi-unklar { background: var(--bg-soft); color: var(--muted); }
 .demand { padding: 1px 6px; border-radius: 4px; font-size: var(--fs-s); }
 .demand.over { background: var(--bad-bg); color: var(--bad-fg); }

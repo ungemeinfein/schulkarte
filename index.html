@@ -54,7 +54,7 @@
       <label class="slider" for="minutes">
         <span>Höchstens <strong id="minLabel">40</strong> Minuten</span>
       </label>
-      <input id="minutes" type="range" min="10" max="45" step="5" value="40" aria-describedby="minLabel" />
+      <input id="minutes" type="range" min="10" max="60" step="5" value="40" aria-describedby="minLabel" />
 
       <fieldset class="mode source">
         <legend>Bereiche auf der Karte</legend>
@@ -82,6 +82,14 @@
       <label><input type="checkbox" value="ja" checked /> ja</label>
       <label><input type="checkbox" value="im Aufbau" checked /> im Aufbau</label>
       <label><input type="checkbox" value="nein" checked /> nein (Wechsel nach Kl. 10)</label>
+    </fieldset>
+
+    <fieldset class="filters" id="gtFilter" hidden>
+      <legend>Ganztag</legend>
+      <label><input type="checkbox" value="gebunden" checked /> gebunden (bis ca. 16 Uhr Pflicht)</label>
+      <label><input type="checkbox" value="teilgebunden" checked /> teilgebunden</label>
+      <label><input type="checkbox" value="offen" checked /> offen (Nachmittag freiwillig)</label>
+      <label><input type="checkbox" value="Halbtag" checked /> Halbtag</label>
     </fieldset>
 
     <fieldset class="filters" id="costFilter">

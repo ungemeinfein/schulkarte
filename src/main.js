@@ -33,6 +33,7 @@ const state = {
   forms: new Set(['Gymnasium', 'ISS', 'Gemeinschaftsschule', 'Freie Schule']),
   abi: new Set(['ja', 'im Aufbau', 'nein']),
   cost: new Set(['staatlich', 'privat']),
+  gt: new Set(['gebunden', 'teilgebunden', 'offen', 'Halbtag']),
   areas: { A: null, B: null },
   overlap: null,
   source: loadJson(SOURCE_KEY).source === 'real' ? 'real' : 'approx',
@@ -148,6 +149,19 @@ function abiCategory(p) {
   return v === 'ja' ? 'ja' : v === 'im aufbau' ? 'im Aufbau' : v === 'nein' ? 'nein' : 'unklar';
 }
 
+// "Ganztagsform" aus der CSV: gebunden | teilgebunden | offen | Halbtag (sonst unklar – wird nie ausgefiltert).
+const GT_VALUES = ['gebunden', 'teilgebunden', 'offen', 'Halbtag'];
+const GT_INFO = {
+  gebunden: 'Gebundener Ganztag: an (meist) 4 Tagen bis ca. 16 Uhr verpflichtend; Unterricht, Lernzeiten, Mittagessen und Angebote über den ganzen Tag verteilt.',
+  teilgebunden: 'Teilgebundener Ganztag: einige Tage verpflichtend bis ca. 16 Uhr, an den anderen sind die Nachmittagsangebote freiwillig.',
+  offen: 'Offener Ganztag: Unterricht am Vormittag, Nachmittagsangebote (Sport, Musik, AGs, Lernzeit) freiwillig.',
+  Halbtag: 'Halbtagsschule: Unterricht meist bis zum frühen Nachmittag, kein verpflichtender Ganztag (ggf. freiwillige AGs).',
+};
+function gtCategory(p) {
+  const v = (p['Ganztagsform'] ?? '').trim();
+  return GT_VALUES.includes(v) ? v : 'unklar';
+}
+
 function costCategory(p) {
   return /^kostenfrei/i.test(p.Kosten ?? '') || /^staatlich$/i.test(p['Träger'] ?? '') ? 'staatlich' : 'privat';
 }
@@ -158,7 +172,7 @@ fetch(`${import.meta.env.BASE_URL}fotos.json`).then((r) => (r.ok ? r.json() : {}
 
 const schools = (await (await fetch(`${import.meta.env.BASE_URL}schulen.geojson`)).json()).features.map((f) => {
   const p = f.properties;
-  const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), lonLat: f.geometry.coordinates, hit: false };
+  const school = { p, category: formCategory(p), abi: abiCategory(p), cost: costCategory(p), gt: gtCategory(p), lonLat: f.geometry.coordinates, hit: false };
   school.marker = L.circleMarker([school.lonLat[1], school.lonLat[0]], { radius: 7, weight: 2 })
     .bindPopup(() => popupHtml(school), { className: 'school-popup', maxWidth: 380, minWidth: 320, autoPanPaddingTopLeft: [20, 70], autoPanPaddingBottomRight: [20, 40] })
     .bindTooltip(escapeHtml(p.Schule), { direction: 'top', offset: [0, -6] })
@@ -279,6 +293,8 @@ function popupHtml(s) {
       ${row('Ab Ort B', timeText(s, 'B'))}
       ${row('Schulform', p.Schulform)}
       ${row('Abitur', abi)}
+      ${row('Ganztag', [s.gt !== 'unklar' ? s.gt : '', p.Ganztag].filter(Boolean).join(' – '))}
+      ${row('Schulbeginn', [p['Unterrichtsbeginn'] ? `Unterricht ab ${p['Unterrichtsbeginn']}` : '', p['Beginn Details']].filter(Boolean).join(' · '))}
       ${row('Kosten', p.Kosten)}
       ${row('Schüler*innen', pupils(s) == null ? '' : `${pupils(s).toLocaleString('de-DE')}${p['Schüler Jg. 7'] ? ` (Jahrgang 7: ${p['Schüler Jg. 7']})` : ''}${p['Schülerzahl Stand'] ? `, Stand ${p['Schülerzahl Stand']}` : ''}`)}
       ${row('Nachfrage', d == null ? '' : `${Math.round(d * 100)} % (${p['Erstwünsche 2026/27']} Erstwünsche auf ${p['Plätze 2026/27']} Plätze, 2026/27)`)}
@@ -539,6 +555,7 @@ function renderSchools() {
   const visible = schools.filter((s) =>
     (state.forms.has(s.category) || s.category === 'Sonstige') &&
     (state.abi.has(s.abi) || s.abi === 'unklar') &&
+    (state.gt.has(s.gt) || s.gt === 'unklar') &&
     state.cost.has(s.cost));
   for (const s of schools) s.hit = anyArea() && isHit(s);
   const hits = visible.filter((s) => s.hit);
@@ -637,6 +654,10 @@ const ALL_COLUMNS = [
     html: (s) => `<span class="badge abi-${s.abi.replace(' ', '-')}" title="${escapeHtml(s.p['Eigene Oberstufe'] || '')}">${s.abi}</span>` },
   { key: 'cost', label: 'Träger', value: (s) => s.cost,
     html: (s) => `<span class="badge c-${s.cost}" title="${escapeHtml(s.p.Kosten || '')}">${s.cost === 'privat' ? 'privat €' : 'staatlich'}</span>` },
+  { key: 'ganztag', label: 'Ganztag', hideIfEmpty: true,
+    value: (s) => (s.gt === 'unklar' ? null : GT_VALUES.indexOf(s.gt)),
+    html: (s) => (s.gt === 'unklar' ? ''
+      : `<span class="badge gt-${s.gt}" title="${escapeHtml([GT_INFO[s.gt], s.p.Ganztag].filter(Boolean).join(' – '))}">${s.gt}</span>`) },
   { key: 'bezirk', label: 'Bezirk', value: (s) => s.p.Bezirk || null,
     html: (s) => escapeHtml(s.p.Bezirk) },
   { key: 'nachfrage', label: 'Nachfrage', num: true,
@@ -806,11 +827,18 @@ document.querySelectorAll('#formFilter label').forEach((label) => {
   const info = FORM_INFO[label.querySelector('input').value];
   if (info) label.title = info;
 });
+// Ganztag-Filter erst zeigen, wenn Daten vorliegen.
+$('gtFilter').hidden = !schools.some((s) => s.gt !== 'unklar');
+document.querySelectorAll('#gtFilter label').forEach((label) => {
+  const info = GT_INFO[label.querySelector('input').value];
+  if (info) label.title = info;
+});
 
 for (const [selector, set] of [
   ['#formFilter input', state.forms],
   ['#abiFilter input', state.abi],
   ['#costFilter input', state.cost],
+  ['#gtFilter input', state.gt],
 ]) {
   document.querySelectorAll(selector).forEach((el) =>
     el.addEventListener('change', () => {
@@ -974,6 +1002,7 @@ function shareUrl(withPoints) {
   if (state.forms.size < FORMS.length) q.set('f', [...state.forms].join('|'));
   if (state.abi.size < ABIS.length) q.set('abi', [...state.abi].join('|'));
   if (state.cost.size < COSTS.length) q.set('tr', [...state.cost].join('|'));
+  if (state.gt.size < GT_VALUES.length) q.set('gt', [...state.gt].join('|'));
   // Sortierung, z. B. s=nachfrage oder s=-nachfrage (absteigend); Standard (Fahrzeit aufsteigend) weglassen.
   if (state.table.sort !== 'max' || state.table.dir !== 1) q.set('s', `${state.table.dir < 0 ? '-' : ''}${state.table.sort}`);
   if (!state.table.onlyHits) q.set('alle', '1');
@@ -1002,13 +1031,14 @@ function applySharedHash() {
   }
   if (['bike', 'transit'].includes(q.get('m'))) state.mode = q.get('m');
   const t = Number(q.get('t'));
-  if (t >= 10 && t <= 45) state.minutes = Math.round(t / 5) * 5;
+  if (t >= 10 && t <= 60) state.minutes = Math.round(t / 5) * 5;
   if (['approx', 'real'].includes(q.get('k'))) state.source = q.get('k');
   // Sets in place ändern – die Checkbox-Handler halten Referenzen darauf.
   const replace = (set, values) => { set.clear(); values.forEach((v) => set.add(v)); };
   if (q.has('f')) replace(state.forms, pick(q.get('f'), FORMS));
   if (q.has('abi')) replace(state.abi, pick(q.get('abi'), ABIS));
   if (q.has('tr')) replace(state.cost, pick(q.get('tr'), COSTS));
+  if (q.has('gt')) replace(state.gt, pick(q.get('gt'), GT_VALUES));
   const sort = q.get('s');
   if (sort) {
     const key = sort.replace(/^-/, '');
@@ -1034,6 +1064,7 @@ function syncControls() {
   document.querySelectorAll('#formFilter input').forEach((el) => (el.checked = state.forms.has(el.value)));
   document.querySelectorAll('#abiFilter input').forEach((el) => (el.checked = state.abi.has(el.value)));
   document.querySelectorAll('#costFilter input').forEach((el) => (el.checked = state.cost.has(el.value)));
+  document.querySelectorAll('#gtFilter input').forEach((el) => (el.checked = state.gt.has(el.value)));
   $('tableOnlyHits').checked = state.table.onlyHits;
 }
 

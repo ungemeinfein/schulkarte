@@ -12,7 +12,7 @@ export const BIKE_KMH = 12; // Kind, Stadtverkehr (research/fahrrad_daten.md)
 const BIKE_COSTING = { bicycle: { cycling_speed: BIKE_KMH, use_roads: 0.1, avoid_bad_surfaces: 0.5 } };
 const WALK_M_PER_MIN = 75;
 const WALK_DETOUR = 1.3; // Luftlinie → Fußweg
-const MAX_TRANSIT_MIN = 45;
+const MAX_TRANSIT_MIN = 60; // = Maximum des Zeit-Schiebereglers
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
