@@ -54,6 +54,7 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
 // So müssen Marker nie nach vorn geholt werden – das würde beim Hovern das mouseout verschlucken.
 map.createPane('areas').style.zIndex = 350;
 map.createPane('routes').style.zIndex = 380;
+map.createPane('routeLabels').style.zIndex = 390; // Zeit-Etiketten über allen Linien
 const areaLayer = L.layerGroup().addTo(map);
 const routeLayer = L.layerGroup().addTo(map);
 const schoolLayer = L.layerGroup().addTo(map);
@@ -396,7 +397,7 @@ async function showRoutes(school) {
     const path = legs.flatMap((leg) => leg.coords);
     if (min != null && path.length > 1) {
       L.marker(midpoint(path), {
-        pane: 'routes', interactive: false, keyboard: false,
+        pane: 'routeLabels', interactive: false, keyboard: false,
         icon: L.divIcon({ className: `route-label route-label-${l}`, html: `${min} min`, iconSize: null }),
       }).addTo(routeLayer);
     }
