@@ -268,6 +268,11 @@ td .delta.approx { font-weight: 400; font-style: italic; }
 .map-search-results .name .sub { font-size: var(--fs-xs); color: var(--muted); }
 .map-search-results .name:focus-visible { outline: 2px solid var(--focus); }
 .map-search-results .msg { color: var(--muted); white-space: normal; }
+.map-search-results .group { font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 6px 4px 2px; }
+.map-search-results .group:hover { background: none; }
+.map-search-results li.school-hit { background: var(--hit-bg); border-left: 3px solid var(--hit); border-radius: 0 4px 4px 0; margin-bottom: 2px; }
+.map-search-results li.school-hit:hover { background: var(--ok-bg); }
+.map-search-results .school-icon { flex: none; width: 22px; display: grid; place-items: center; color: var(--hit); }
 .map-search .pick { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid; background: var(--surface); font-weight: 700; cursor: pointer; }
 .map-search .pick-A { border-color: var(--A); color: var(--A); }
 .map-search .pick-B { border-color: var(--B); color: var(--B); }

@@ -110,10 +110,32 @@ map.on('click', (e) => {
   if (label) pointSet(label, [e.latlng.lng, e.latlng.lat]);
 });
 
+// Schul-Index für die Suche: wird aus den geladenen Daten gebaut (neue Schulen sind automatisch dabei).
+const norm = (t) => String(t ?? '').toLowerCase().replace(/ß/g, 'ss').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const schoolSearch = {
+  find(q) {
+    const tokens = norm(q).split(/\s+/).filter(Boolean);
+    if (!tokens.length) return [];
+    return schools
+      .map((s) => {
+        const name = norm(s.p.Schule);
+        const hay = `${name} ${norm(s.p.Schulnummer)} ${norm(s.p.Ortsteil)} ${norm(s.p.Bezirk)} ${norm(s.category)} ${norm(s.p.Schulform)}`;
+        if (!tokens.every((t) => hay.includes(t))) return null;
+        const score = name.startsWith(tokens[0]) ? 0 : tokens.every((t) => name.includes(t)) ? 1 : 2;
+        return { s, score };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.score - b.score || a.s.p.Schule.localeCompare(b.s.p.Schule, 'de'))
+      .slice(0, 6)
+      .map(({ s }) => ({ name: s.p.Schule, sub: [s.category, s.p.Ortsteil || s.p.Bezirk].filter(Boolean).join(' · ') }));
+  },
+  open: (name) => focusSchool(name),
+};
+
 const search = addSearchControl(map, (label, lonLat) => {
   map.setView([lonLat[1], lonLat[0]], Math.max(map.getZoom(), 14));
   pointSet(label, lonLat);
-});
+}, schoolSearch);
 
 
 // Kurze Rückmeldung oben auf der Karte.
@@ -632,7 +654,7 @@ function renderSchools() {
 
   $('hint').textContent = state.armed
     ? `Klick in die Karte oder Adresse suchen, um Ort ${state.armed} zu setzen.`
-    : !state.points.A ? 'Adresse über die Lupe auf der Karte suchen oder in die Karte klicken, um Ort A zu setzen.'
+    : !state.points.A ? 'Adresse über die Lupe auf der Karte suchen (dort findest du auch Schulen) oder in die Karte klicken, um Ort A zu setzen.'
     : !state.points.B ? 'Jetzt Ort B setzen: Adresse suchen oder in die Karte klicken.'
     : 'Die Punkte A und B lassen sich auf der Karte verschieben.';
 

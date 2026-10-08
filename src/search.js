@@ -1,4 +1,4 @@
-// Adresssuche auf der Karte mit Ergebnissen beim Tippen.
+// Suche auf der Karte: Schulen (lokal, sofort) und Adressen (Photon) mit Ergebnissen beim Tippen.
 // Photon (komoot, OpenStreetMap-Daten) ist für Suche-beim-Tippen gedacht – anders als Nominatim,
 // dessen Nutzungsregeln Autovervollständigung verbieten. Treffer lassen sich als A oder B setzen.
 import L from 'leaflet';
@@ -18,18 +18,19 @@ function label(p) {
   };
 }
 
-export function addSearchControl(map, onPick) {
+// schools: { find(q) → [{ name, sub }], open(name) } – Index kommt aus den geladenen Schuldaten.
+export function addSearchControl(map, onPick, schools) {
   let api = { open() {} };
   const Control = L.Control.extend({
     options: { position: 'topright' },
     onAdd() {
       const box = L.DomUtil.create('div', 'map-search collapsed');
       box.innerHTML = `
-        <button type="button" class="map-search-toggle" aria-label="Adresse suchen" title="Adresse suchen" aria-expanded="false">
+        <button type="button" class="map-search-toggle" aria-label="Schule oder Adresse suchen" title="Schule oder Adresse suchen" aria-expanded="false">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>
         <form role="search">
-          <input id="placeSearch" type="search" placeholder="Adresse oder Ort suchen …" aria-label="Adresse oder Ort suchen" autocomplete="off" />
+          <input id="placeSearch" type="search" placeholder="Schule, Adresse oder Ort suchen …" aria-label="Schule, Adresse oder Ort suchen" autocomplete="off" />
         </form>
         <ol class="map-search-results" hidden aria-live="polite"></ol>`;
       L.DomEvent.disableClickPropagation(box);
@@ -39,11 +40,14 @@ export function addSearchControl(map, onPick) {
       const input = box.querySelector('input');
       const list = box.querySelector('ol');
       const toggle = box.querySelector('.map-search-toggle');
+      // Klicks in der Liste nie zur Karte durchlassen: die Liste wird beim Klick geleert, danach erkennt
+      // Leaflet die Herkunft nicht mehr und würde das als Kartenklick werten (Popup zu, Punkt gesetzt).
+      list.addEventListener('click', (e) => e.stopPropagation());
       let timer;
       let controller;
       let lastQuery = '';
 
-      const close = () => { list.hidden = true; list.replaceChildren(); lastQuery = ''; };
+      const close = () => { list.hidden = true; list.replaceChildren(); lastQuery = ''; schoolItems = []; placeItems = []; };
       const setOpen = (open) => {
         box.classList.toggle('collapsed', !open);
         toggle.setAttribute('aria-expanded', String(open));
@@ -53,9 +57,39 @@ export function addSearchControl(map, onPick) {
       toggle.addEventListener('click', () => setOpen(box.classList.contains('collapsed')));
       api = { open: (l) => { setOpen(true); input.placeholder = `Adresse für Ort ${l} suchen …`; } };
 
+      // Ergebnisliste = Schul-Treffer (sofort) + Adress-Treffer (nach Photon-Antwort).
+      let schoolItems = [];
+      let placeItems = [];
+      const render = () => {
+        list.hidden = !schoolItems.length && !placeItems.length;
+        list.replaceChildren(...schoolItems, ...placeItems);
+      };
+      const renderSchools = (q) => {
+        const hits = q.length >= 2 ? schools?.find(q) ?? [] : [];
+        schoolItems = hits.length
+          ? [Object.assign(document.createElement('li'), { className: 'group', textContent: 'Schulen' }), ...hits.map((h) => {
+            const li = document.createElement('li');
+            li.className = 'school-hit';
+            const btn = Object.assign(document.createElement('button'), { type: 'button', className: 'name' });
+            btn.append(
+              Object.assign(document.createElement('span'), { className: 'title', textContent: h.name }),
+              Object.assign(document.createElement('span'), { className: 'sub', textContent: h.sub }),
+            );
+            btn.title = 'Schule auf der Karte öffnen';
+            btn.onclick = () => { setOpen(false); schools.open(h.name); };
+            const icon = Object.assign(document.createElement('span'), { className: 'school-icon' });
+            icon.setAttribute('aria-hidden', 'true');
+            icon.innerHTML = '<svg viewBox="0 0 32 32" width="16" height="16"><path d="M16 6 5 11.5 16 17l9-4.5V19h2v-7.5z" fill="currentColor"/><path d="M9.5 15.3v4.2c0 1.9 2.9 3.5 6.5 3.5s6.5-1.6 6.5-3.5v-4.2L16 18.6z" fill="currentColor" opacity=".8"/></svg>';
+            li.append(icon, btn);
+            return li;
+          })]
+          : [];
+        render();
+      };
+
       const message = (text) => {
-        list.hidden = false;
-        list.replaceChildren(Object.assign(document.createElement('li'), { className: 'msg', textContent: text }));
+        placeItems = [Object.assign(document.createElement('li'), { className: 'msg', textContent: text })];
+        render();
       };
 
       async function search(q) {
@@ -70,7 +104,7 @@ export function addSearchControl(map, onPick) {
           if (!res.ok) throw new Error(res.status);
           const { features = [] } = await res.json();
           if (input.value.trim() !== q) return; // inzwischen weitergetippt
-          if (!features.length) return message('Nichts gefunden. Straße mit Hausnummer probieren.');
+          if (!features.length) return schoolItems.length ? (placeItems = [], render()) : message('Nichts gefunden. Straße mit Hausnummer probieren.');
           // Doppelte Treffer (gleicher Name und gleiche Adresse) nur einmal zeigen.
           const seen = new Set();
           const unique = features.filter((f) => {
@@ -78,8 +112,7 @@ export function addSearchControl(map, onPick) {
             const key = `${title}|${sub}`;
             return seen.has(key) ? false : seen.add(key);
           });
-          list.hidden = false;
-          list.replaceChildren(...unique.map((f) => {
+          placeItems = [Object.assign(document.createElement('li'), { className: 'group', textContent: 'Adressen & Orte' }), ...unique.map((f) => {
             const lonLat = f.geometry.coordinates;
             const { title, sub } = label(f.properties);
             const li = document.createElement('li');
@@ -96,7 +129,8 @@ export function addSearchControl(map, onPick) {
               li.append(b);
             }
             return li;
-          }));
+          })];
+          render();
         } catch (err) {
           if (err.name === 'AbortError') return;
           lastQuery = '';
@@ -107,7 +141,8 @@ export function addSearchControl(map, onPick) {
       input.addEventListener('input', () => {
         clearTimeout(timer);
         const q = input.value.trim();
-        if (q.length < MIN_CHARS) { controller?.abort(); close(); return; }
+        renderSchools(q);
+        if (q.length < MIN_CHARS) { controller?.abort(); placeItems = []; lastQuery = ''; render(); return; }
         timer = setTimeout(() => search(q), DEBOUNCE_MS);
       });
       form.addEventListener('submit', (e) => {
