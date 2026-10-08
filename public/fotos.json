@@ -440,5 +440,49 @@
    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
    "title": "Berlin-Britz Haarlemer Straße Otto-Hahn-Schule"
   }
+ ],
+ "Heinrich-Hertz-Gymnasium": [
+  {
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Rigaer_Str_Schule_F%27hain_110311_AMA_fec_%2815%29.JPG/500px-Rigaer_Str_Schule_F%27hain_110311_AMA_fec_%2815%29.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "page": "https://commons.wikimedia.org/wiki/File:Rigaer_Str_Schule_F%27hain_110311_AMA_fec_(15).JPG",
+   "author": "Angela M. Arnold (=44penguins)",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "title": "Ortsteil Berlin-Friedrichshain: Rigaer Str.82, Schule, Baudenkmal"
+  },
+  {
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/HH_OS.JPG/500px-HH_OS.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "page": "https://commons.wikimedia.org/wiki/File:HH_OS.JPG",
+   "author": "Achim Raschka",
+   "license": "CC BY-SA 3.0",
+   "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+   "title": "Heinrich Hertz High School in Rigaer Straße, Friedrichshain, Berlin."
+  }
+ ],
+ "Georg-Friedrich-Händel-Gymnasium": [
+  {
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Friedrichshain_Georg-Friedrich-H%C3%A4ndel-Gymnasium.jpg/500px-Friedrichshain_Georg-Friedrich-H%C3%A4ndel-Gymnasium.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "page": "https://commons.wikimedia.org/wiki/File:Friedrichshain_Georg-Friedrich-H%C3%A4ndel-Gymnasium.jpg",
+   "author": "Fridolin freudenfett",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "title": "Friedrichshain Georg-Friedrich-Händel-Gymnasium"
+  },
+  {
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/Geb%C3%A4ude_des_Georg-Friedrich-H%C3%A4ndel-Gymnasiums%2C_29.12.2020.jpg/500px-Geb%C3%A4ude_des_Georg-Friedrich-H%C3%A4ndel-Gymnasiums%2C_29.12.2020.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "page": "https://commons.wikimedia.org/wiki/File:Geb%C3%A4ude_des_Georg-Friedrich-H%C3%A4ndel-Gymnasiums,_29.12.2020.jpg",
+   "author": "Egykisagnes",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "title": "Hauptgebäude des Georg-Friedrich-Händel-Gymnasiums Berlin mit neu angebautem Händel-Saal"
+  },
+  {
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/64/H%C3%A4ndel-Oberschule%2C_Berlin-Friedrichshain.jpg/500px-H%C3%A4ndel-Oberschule%2C_Berlin-Friedrichshain.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "page": "https://commons.wikimedia.org/wiki/File:H%C3%A4ndel-Oberschule,_Berlin-Friedrichshain.jpg",
+   "author": "Minderbinder",
+   "license": "CC BY-SA 4.0",
+   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "title": "Georg-Friedrich-Händel-Gymnasium (früher Händel-Oberschule), Berlin-Friedrichshain"
+  }
  ]
 }

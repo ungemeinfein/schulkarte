@@ -2680,6 +2680,86 @@
     "Notizen": "",
     "Quelle": "https://www.bildung.berlin.de/Schulverzeichnis/Schulportrait.aspx?IDSchulzweig=30055"
    }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4628198,
+     52.5169067
+    ]
+   },
+   "properties": {
+    "Schule": "Heinrich-Hertz-Gymnasium",
+    "Schulnummer": "02Y03",
+    "Schulform": "Gymnasium (Schule besonderer pädagogischer Prägung, mathematisch-naturwissenschaftlich, ab Kl. 5 und 7)",
+    "Träger": "staatlich",
+    "Ortsteil": "Friedrichshain",
+    "Bezirk": "Friedrichshain-Kreuzberg",
+    "Adresse": "Rigaer Straße 81, 10247 Berlin",
+    "Weitere Standorte": "Neubau Müncheberger Straße 8, 10243 Berlin (Umzug geplant, Termin unklar)",
+    "Abschlüsse vor Ort": "Abitur",
+    "Eigene Oberstufe": "ja",
+    "Abitur vor Ort": "ja",
+    "Ganztagsform": "",
+    "Ganztag": "",
+    "Unterrichtsbeginn": "8:00",
+    "Beginn Details": "1. Std. 8:00–8:45; Schule geöffnet 7:30–15:30",
+    "Ganztag Quelle": "https://hhgym.de/unterrichtszeiten/",
+    "Profil / Schwerpunkte": "MINT-Spezialprofil, MINT-EC, Partnerschule der Humboldt-Universität, Mathematische Schülergesellschaft, Spitzenförderung",
+    "Tag der offenen Tür": "TdoT 15.10.2026, 16–18 Uhr; Info Kl. 7 am 26.11.2026, 18 Uhr; Marie-Curie-Tag 10.12.2026",
+    "Plätze 2026/27": "32",
+    "Erstwünsche 2026/27": "44",
+    "Nachfrage Hinweis": "nur Plätze für Kl. 7 (ohne grundständige Kl. 5)",
+    "Schülerzahl": "",
+    "Schüler Jg. 7": "",
+    "Schülerzahl Stand": "",
+    "Schülerzahl Quelle": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "Aufnahme Kl. 7 ohne Eignungstest: Mathe mind. „gut“; gewichtete Notensumme aus Mathe (doppelt), Deutsch, 1. Fremdsprache, Naturwissenschaften – niedrigste Summen werden aufgenommen, bei Gleichstand Mathe-Olympiade, dann Los; eine neue 7. Klasse; Anmeldung März 2027",
+    "Quelle": "https://hhgym.de/anmeldung-schuelerinnen/"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     13.4560533,
+     52.5144222
+    ]
+   },
+   "properties": {
+    "Schule": "Georg-Friedrich-Händel-Gymnasium",
+    "Schulnummer": "02Y04",
+    "Schulform": "Gymnasium (musikbetont, Schule besonderer pädagogischer Prägung, ab Kl. 5)",
+    "Träger": "staatlich",
+    "Ortsteil": "Friedrichshain",
+    "Bezirk": "Friedrichshain-Kreuzberg",
+    "Adresse": "Frankfurter Allee 6A, 10247 Berlin",
+    "Weitere Standorte": "",
+    "Abschlüsse vor Ort": "Abitur",
+    "Eigene Oberstufe": "ja",
+    "Abitur vor Ort": "ja",
+    "Ganztagsform": "",
+    "Ganztag": "",
+    "Unterrichtsbeginn": "8:00",
+    "Beginn Details": "Blockunterricht, Block 1 8:00–9:30",
+    "Ganztag Quelle": "https://haendelgym.de/pages/home/schule/unterricht/wocheneinteilung/zeiten.php",
+    "Profil / Schwerpunkte": "musikbetontes Gymnasium (Instrument erforderlich), Blockunterricht",
+    "Tag der offenen Tür": "TdoT 30.11.2026, 15–18 Uhr",
+    "Plätze 2026/27": "32",
+    "Erstwünsche 2026/27": "24",
+    "Nachfrage Hinweis": "nur Plätze für Kl. 7 (ohne grundständige Kl. 5)",
+    "Schülerzahl": "",
+    "Schüler Jg. 7": "",
+    "Schülerzahl Stand": "",
+    "Schülerzahl Quelle": "",
+    "Kosten": "kostenfrei",
+    "Notizen": "Für Kl. 5 musikalischer Eignungstest (Hauptinstrument); für Kl. 7 gab es 2026/27 eine zusätzliche Klasse – ob auch hier ein Eignungstest nötig ist: unklar, bei der Schule erfragen",
+    "Quelle": "https://haendelgym.de/pages/home/schule/anmeldung.php"
+   }
   }
  ]
 }
