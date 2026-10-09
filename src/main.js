@@ -2,7 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { booleanPointInPolygon, distance, featureCollection, intersect } from '@turf/turf';
 import { reachArea, SPEED_KMH } from './isochrones.js';
-import { bikeRoute, bikeRoutes, bikeTimes, pointKey, schoolDay, transitRoute, transitTimes } from './routing.js';
+import { bikeRoute, bikeRoutes, bikeTimes, pointKey, prefetchAreas, schoolDay, transitRoute, transitTimes } from './routing.js';
 import { initTermine, nextEventFor, setFavs, setHits } from './termine.js';
 import { initSplitters } from './splitters.js';
 import { addSearchControl } from './search.js';
@@ -993,6 +993,7 @@ $('computeTimes').onclick = async () => {
       state.routes[routeKey('bike')] = { ...state.routes[routeKey('bike')], ...bikeR };
       saveJson(TIMES_KEY, state.times);
       saveJson(ROUTES_KEY, state.routes);
+      prefetchAreas(state.points[l]);
       lastPct = -1;
       renderSchools();
     }

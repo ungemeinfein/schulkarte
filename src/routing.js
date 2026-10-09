@@ -36,11 +36,60 @@ const bvgQueue = rateLimited(650);
 export const round = ([lon, lat]) => [Math.round(lon * 1000) / 1000, Math.round(lat * 1000) / 1000];
 export const pointKey = (p) => round(p).join(',');
 
+// Abruf mit Zeitlimit und 2 Wiederholungen bei Überlast/Netzfehlern (die freien Dienste sind manchmal träge).
+const RETRY_STATUS = new Set([429, 500, 502, 503, 504]);
 async function getJson(url, init) {
-  const res = await fetch(url, init);
-  if (!res.ok) throw new Error(`${new URL(url).host} ${res.status}`);
-  return res.json();
+  const host = new URL(url).host;
+  for (let attempt = 0; ; attempt++) {
+    let res;
+    try {
+      res = await fetch(url, { ...init, signal: AbortSignal.timeout(20000) });
+    } catch (err) {
+      if (attempt < 2) { await sleep(2000 * (attempt + 1) ** 2); continue; }
+      throw new Error(`${host} nicht erreichbar (${err.name})`);
+    }
+    if (res.ok) return res.json();
+    if (RETRY_STATUS.has(res.status) && attempt < 2) { await sleep(2000 * (attempt + 1) ** 2); continue; }
+    throw new Error(`${host} ${res.status}`);
+  }
 }
+
+// ---------- Dauerhafter Zwischenspeicher (localStorage) ----------
+// Haltestellen, erreichbare Haltestellen und Fahrrad-Flächen ändern sich kaum: einmal holen, dann aus dem Speicher.
+// Nach MAX_AGE_DAYS wird neu geholt (Fahrplanwechsel im Dezember); schlägt das fehl, gilt der alte Stand weiter.
+const STORE_KEY = 'schulkarte.netcache.v1';
+const MAX_AGE_DAYS = 120;
+let store = (() => { try { return JSON.parse(localStorage.getItem(STORE_KEY) ?? '{}'); } catch { return {}; } })();
+let storeTimer;
+function storeSave() {
+  clearTimeout(storeTimer);
+  storeTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(store));
+    } catch {
+      // Speicher voll: älteste Fahrrad-Flächen verwerfen und erneut versuchen.
+      const iso = Object.entries(store).filter(([k]) => k.startsWith('bikeiso|')).sort((a, b) => a[1].t - b[1].t);
+      for (const [k] of iso.slice(0, Math.ceil(iso.length / 2))) delete store[k];
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch { /* dann eben nur im Speicher */ }
+    }
+  }, 300);
+}
+const fresh = (e) => e && Date.now() - e.t < MAX_AGE_DAYS * 864e5;
+// Holt über fetcher(), wenn nichts Frisches gespeichert ist; bei Fehler alter Stand, falls vorhanden.
+async function persisted(key, fetcher, pack = (v) => v, unpack = (v) => v) {
+  const e = store[key];
+  if (fresh(e)) return unpack(e.v);
+  try {
+    const v = await fetcher();
+    store[key] = { t: Date.now(), v: pack(v) };
+    storeSave();
+    return v;
+  } catch (err) {
+    if (e) return unpack(e.v);
+    throw err;
+  }
+}
+const r5 = (x) => Math.round(x * 1e5) / 1e5;
 
 // Nächster Dienstag ab morgen, mit Berliner UTC-Offset (Sommer-/Winterzeit).
 export function schoolDay() {
@@ -88,17 +137,27 @@ export function bikeIsochrone(point, minutes) {
     const [lon, lat] = round(point);
     // Veraltete Anfragen (Schieberegler weitergezogen) gar nicht erst senden.
     const stale = () => latestBikeReq.get(pointKey(point)) !== minutes;
-    const p = valhallaPost('isochrone', {
+    const p = persisted(`bikeiso|${key}`, () => valhallaPost('isochrone', {
       locations: [{ lat, lon }],
       costing: 'bicycle',
       costing_options: BIKE_COSTING,
       contours: [{ time: minutes }],
       polygons: true,
-    }, stale).then((fc) => fc.features.find((f) => /Polygon/.test(f.geometry.type)));
+    }, stale).then((fc) => fc.features.find((f) => /Polygon/.test(f.geometry.type))), shrinkPolygon);
     p.catch(() => bikeIsoCache.delete(key));
     bikeIsoCache.set(key, p);
   }
   return bikeIsoCache.get(key);
+}
+
+// Fläche für die Speicherung verkleinern: 4 Nachkommastellen (~10 m), doppelte Punkte weg.
+function shrinkPolygon(f) {
+  if (!f) return f;
+  const ring = (r) => r.map(([x, y]) => [Math.round(x * 1e4) / 1e4, Math.round(y * 1e4) / 1e4])
+    .filter((p, i, a) => i === 0 || p[0] !== a[i - 1][0] || p[1] !== a[i - 1][1]);
+  const g = f.geometry;
+  const coordinates = g.type === 'Polygon' ? g.coordinates.map(ring) : g.coordinates.map((poly) => poly.map(ring));
+  return { type: 'Feature', properties: {}, geometry: { type: g.type, coordinates } };
 }
 
 // ---------- ÖPNV ----------
@@ -111,7 +170,7 @@ export function nearestStop(point) {
   const key = pointKey(point);
   if (!stopCache.has(key)) {
     const [lon, lat] = round(point);
-    const p = bvgGet('/locations/nearby', { latitude: lat, longitude: lon, results: 5, distance: 1500, poi: false })
+    const p = persisted(`stop|${key}`, () => bvgGet('/locations/nearby', { latitude: lat, longitude: lon, results: 5, distance: 1500, poi: false })
       .then((list) => {
         const stops = list.filter((l) => l.type === 'stop' || l.type === 'station').sort((a, b) => a.distance - b.distance);
         if (!stops.length) throw new Error('Keine Haltestelle in 1,5 km gefunden');
@@ -122,7 +181,7 @@ export function nearestStop(point) {
           location: [s.location.longitude, s.location.latitude],
           walkMin: Math.ceil((s.distance * WALK_DETOUR) / WALK_M_PER_MIN),
         };
-      });
+      }));
     p.catch(() => stopCache.delete(key));
     stopCache.set(key, p);
   }
@@ -209,7 +268,7 @@ const reachCache = new Map();
 function reachableStops(point) {
   const key = pointKey(point);
   if (!reachCache.has(key)) {
-    const p = (async () => {
+    const p = persisted(`reach|${key}|${MAX_TRANSIT_MIN}`, async () => {
       const stop = await nearestStop(point);
       const { date, offset } = schoolDay();
       const data = await bvgGet('/stops/reachable-from', {
@@ -230,7 +289,9 @@ function reachableStops(point) {
         }
       }
       return { stop, stops: [...best.values()] };
-    })();
+    },
+    (v) => ({ stop: v.stop, s: v.stops.map((x) => [r5(x.location[0]), r5(x.location[1]), x.duration]) }),
+    (v) => (v.s ? { stop: v.stop, stops: v.s.map(([lo, la, d]) => ({ location: [lo, la], duration: d })) } : v));
     p.catch(() => reachCache.delete(key));
     reachCache.set(key, p);
   }
@@ -345,4 +406,9 @@ export async function bikeRoutes(point, schools, onProgress) {
     onProgress?.(++done, schools.length);
   }
   return out;
+}
+
+// Nach dem Berechnen der Fahrzeiten: ÖPNV-Erreichbarkeit gleich mitholen und speichern (1 Anfrage pro Ort).
+export function prefetchAreas(point) {
+  return reachableStops(point).catch(() => {});
 }
