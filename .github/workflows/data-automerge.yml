@@ -1,0 +1,57 @@
+name: Validate and auto-merge data updates
+
+# Läuft für die PRs der täglichen Termin-Routine (Branch auto/termine).
+# Wird nur gemergt, wenn ausschließlich data/termine.json und data/schulen.csv geändert wurden
+# und Validierung + Build grün sind. Danach wird das Deployment explizit angestoßen
+# (Merges mit GITHUB_TOKEN lösen sonst keinen push-Trigger aus).
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  validate:
+    if: github.head_ref == 'auto/termine' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Only data files changed
+        run: |
+          git fetch origin main
+          bad=$(git diff --name-only origin/main...HEAD | grep -v -E '^data/(termine\.json|schulen\.csv)$' || true)
+          if [ -n "$bad" ]; then echo "Unexpected files changed:"; echo "$bad"; exit 1; fi
+      - name: Validate data
+        run: |
+          python3 - <<'PY'
+          import csv, json, sys
+          names = {r['Schule'] for r in csv.DictReader(open('data/schulen.csv', encoding='utf-8-sig'))}
+          ev = json.load(open('data/termine.json', encoding='utf-8'))
+          starts = [e['start'] for e in ev]
+          assert starts == sorted(starts), 'termine.json not sorted by start'
+          for e in ev:
+              s = e['schule']
+              for n in ([s] if isinstance(s, str) else s):
+                  assert n == 'Allgemein' or n in names, f'unknown school: {n}'
+              assert e['art'] in ('tdot', 'info', 'schnupper', 'frist'), e
+              assert e['quelle'].startswith('https://'), e
+          print(len(ev), 'events OK')
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Merge and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" --squash --repo "$GITHUB_REPOSITORY"
+          gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"
