@@ -1,0 +1,55 @@
+name: Data watchdog
+
+# Täglich: meldet per Issue (→ E-Mail), wenn die Daten-Routinen nicht mehr arbeiten:
+# - ein auto/*-PR hängt seit über 12 Stunden
+# - das Prüf-Protokoll (data/pruefung.json) wurde seit 3 Tagen (Termine) bzw. 10 Tagen (Schuldaten) nicht fortgeschrieben
+# Ist alles wieder in Ordnung, wird das Issue automatisch geschlossen.
+
+on:
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check routines
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          problems=""
+          stuck=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,headRefName,createdAt \
+            -q '.[] | select(.headRefName | startswith("auto/")) | select((now - (.createdAt | fromdateiso8601)) > 43200) | "#\(.number) (\(.headRefName))"')
+          [ -n "$stuck" ] && problems="$problems- Data PR open for more than 12 hours: $stuck"$'\n'
+          ledger=$(python3 - <<'PY'
+          import json, datetime
+          led = json.load(open('data/pruefung.json', encoding='utf-8'))
+          today = datetime.date.today()
+          for key, days, what in (('termine', 3, 'event check (daily routine)'), ('schuldaten', 10, 'school data check (weekly routine)')):
+              dates = [v[key] for v in led.values() if v.get(key)]
+              last = max(dates) if dates else None
+              if not last or (today - datetime.date.fromisoformat(last)).days > days:
+                  print(f'- No {what} recorded since {last or "ever"}.')
+          PY
+          )
+          [ -n "$ledger" ] && problems="$problems$ledger"$'\n'
+
+          title="Data routines need attention"
+          n=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number -q '.[0].number')
+          if [ -n "$problems" ]; then
+            body=$(printf '%s\n\nCheck the routine runs on claude.ai (Routines) and the Actions tab.' "$problems")
+            echo "$body"
+            if [ -n "$n" ]; then gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body "$body"
+            else gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi
+          elif [ -n "$n" ]; then
+            gh issue close "$n" --repo "$GITHUB_REPOSITORY" --comment "Routines are working again."
+          else
+            echo "All good."
+          fi

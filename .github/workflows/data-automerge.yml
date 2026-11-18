@@ -1,9 +1,10 @@
 name: Validate and auto-merge data updates
 
-# Läuft für die PRs der täglichen Termin-Routine (Branch auto/termine).
-# Wird nur gemergt, wenn ausschließlich data/termine.json und data/schulen.csv geändert wurden
-# und Validierung + Build grün sind. Danach wird das Deployment explizit angestoßen
+# Läuft für die PRs der Daten-Routinen (auto/termine täglich, auto/schulen wöchentlich).
+# Gemergt wird nur, wenn ausschließlich erlaubte Datendateien geändert wurden und
+# Validierung + Build grün sind. Danach wird das Deployment explizit angestoßen
 # (Merges mit GITHUB_TOKEN lösen sonst keinen push-Trigger aus).
+# Schlägt etwas fehl, wird ein Issue eröffnet – das kommt per E-Mail an.
 
 on:
   pull_request:
@@ -13,10 +14,15 @@ permissions:
   contents: write
   pull-requests: write
   actions: write
+  issues: write
+
+concurrency:
+  group: data-automerge
+  cancel-in-progress: false
 
 jobs:
   validate:
-    if: github.head_ref == 'auto/termine' && github.event.pull_request.head.repo.full_name == github.repository
+    if: (github.head_ref == 'auto/termine' || github.head_ref == 'auto/schulen') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,24 +31,17 @@ jobs:
       - name: Only data files changed
         run: |
           git fetch origin main
-          bad=$(git diff --name-only origin/main...HEAD | grep -v -E '^data/(termine\.json|schulen\.csv)$' || true)
+          if [ "${{ github.head_ref }}" = "auto/termine" ]; then
+            allowed='^data/(termine\.json|schulen\.csv|pruefung\.json)$'
+          else
+            allowed='^(data/(termine\.json|schulen\.csv|pruefung\.json|geocode-overrides\.json|fotos-auswahl\.json)|public/(schulen\.geojson|fotos\.json))$'
+          fi
+          bad=$(git diff --name-only origin/main...HEAD | grep -v -E "$allowed" || true)
           if [ -n "$bad" ]; then echo "Unexpected files changed:"; echo "$bad"; exit 1; fi
       - name: Validate data
         run: |
-          python3 - <<'PY'
-          import csv, json, sys
-          names = {r['Schule'] for r in csv.DictReader(open('data/schulen.csv', encoding='utf-8-sig'))}
-          ev = json.load(open('data/termine.json', encoding='utf-8'))
-          starts = [e['start'] for e in ev]
-          assert starts == sorted(starts), 'termine.json not sorted by start'
-          for e in ev:
-              s = e['schule']
-              for n in ([s] if isinstance(s, str) else s):
-                  assert n == 'Allgemein' or n in names, f'unknown school: {n}'
-              assert e['art'] in ('tdot', 'info', 'schnupper', 'frist'), e
-              assert e['quelle'].startswith('https://'), e
-          print(len(ev), 'events OK')
-          PY
+          git show origin/main:data/schulen.csv > /tmp/base.csv
+          python3 scripts/validate-data.py /tmp/base.csv
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -53,5 +52,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr merge "${{ github.event.pull_request.number }}" --squash --repo "$GITHUB_REPOSITORY"
+          gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch --repo "$GITHUB_REPOSITORY"
           gh workflow run pages.yml --ref main --repo "$GITHUB_REPOSITORY"
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Automatic data update failed (${{ github.head_ref }})"
+          body="The data PR #${{ github.event.pull_request.number }} was not merged automatically. Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          n=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number -q '.[0].number')
+          if [ -n "$n" ]; then gh issue comment "$n" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"; fi
