@@ -386,3 +386,5 @@ td .delta.approx { font-weight: 400; font-style: italic; }
   #schoolTable { font-size: var(--fs-s); }
   #schoolTable td { padding: 6px; }
 }
+
+.stand { margin: 8px 12px 12px; font-size: 12px; color: var(--muted); }

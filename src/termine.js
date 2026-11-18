@@ -126,7 +126,13 @@ export function render() {
   $('termOnlyHits').disabled = !ctx.hitNames;
 }
 
+const deDate = (iso) => (iso ? iso.split('-').reverse().join('.') : '');
+
 export function initTermine(context) {
+  const st = typeof __STAND__ !== 'undefined' ? __STAND__ : null;
+  if (st?.termine) {
+    $('stand').textContent = `Stand: Termine ${deDate(st.termine)}` + (st.schulen ? `, Schuldaten ${deDate(st.schulen)}` : '') + '. Angaben ohne Gewähr, bitte bei der Schule prüfen.';
+  }
   ctx = { ...ctx, ...context };
   document.querySelectorAll('#termFilters input[data-art]').forEach((el) => {
     el.checked = prefs.arts[el.dataset.art] !== false;
